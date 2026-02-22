@@ -132,3 +132,32 @@ AI agents must read this file before starting work and mark each task `[x]` when
 - [ ] Review wall/slab/door IFC output and define required material-related properties for HVAC simulators.
 - [ ] Add configurable material/thermal metadata in `Config` and export those as IFC property sets/material assignments.
 - [ ] Add end-to-end tests asserting exported IFC contains the new element properties.
+
+---
+
+## Phase 6 – Multi-storey layout algorithm redesign
+
+### 6-1 Formalize floor-wise zoning and vertical-core constraints
+- [ ] Define a two-stage solve strategy that preserves current single-storey quality while extending to multi-storey: (1) per-floor 2D solve, (2) vertical core alignment solve.
+- [ ] Introduce explicit `VerticalCoreSpec` / `CirculationSpec` requirements in topology extraction for stairs and elevators.
+- [ ] Add topology validation rules that enforce stair presence for `storey_count >= 2` and elevator presence for configurable high-rise thresholds.
+
+### 6-2 Implement deterministic stair/elevator placement heuristic
+- [ ] Add a pre-placement pass that reserves stair/elevator shafts before room packing and keeps reserved cores aligned across floors.
+- [ ] Implement stair adjacency scoring (near corridor, away from dead-end) and elevator centrality scoring (minimize weighted travel distance to floor spaces).
+- [ ] Add conflict resolution for multiple cores (e.g., split-core buildings) with fallback to OR-Tools objective penalties.
+
+### 6-3 Extend OR-Tools model for stacked-floor optimization
+- [ ] Add decision variables tying core XY positions across storeys (stacking constraints) while keeping existing non-overlap/adjacency constraints per floor.
+- [ ] Add objective terms for vertical circulation efficiency (stairs path length, elevator service radius, queue-risk proxy via served area).
+- [ ] Keep backward compatibility by gating all new terms behind `SolverConfig.multi_storey_mode` and ensuring single-storey objective behavior is unchanged.
+
+### 6-4 Geometry and IFC integration for vertical circulation
+- [ ] Extend geometry generation to create aligned openings/voids for stair and elevator shafts through slabs.
+- [ ] Export stairs (`IfcStair`) and elevators (`IfcTransportElement` or proxy fallback) tied to corresponding `IfcBuildingStorey` relations.
+- [ ] Add validation ensuring shaft solids and slab openings remain consistent across storeys.
+
+### 6-5 Verification, fixtures, and rollout safety
+- [ ] Add fixtures for `2-storey-with-stair`, `6-storey-with-elevator`, and `multi-core-highrise` scenarios.
+- [ ] Add regression tests proving existing single-storey layouts are unchanged (golden bbox/similarity checks).
+- [ ] Add performance benchmarks and acceptance criteria (solve time, overlap violations, circulation coverage) and document rollout gates.

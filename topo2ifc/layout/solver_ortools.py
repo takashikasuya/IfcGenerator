@@ -44,57 +44,90 @@ class OrtoolsSolver(LayoutSolverBase):
             return []
 
         grid = self.config.grid_unit  # metres per grid unit
-        # Convert metre areas to grid-unit areas
-        min_areas_g = [
-            max(1, math.ceil(sp.effective_area_min / (grid * grid))) for sp in spaces
-        ]
-        target_areas_g = [
-            max(1, round(sp.effective_area_target / (grid * grid))) for sp in spaces
-        ]
+        min_areas_g = [max(1, math.ceil(sp.effective_area_min / (grid * grid))) for sp in spaces]
+        target_areas_g = [max(1, round(sp.effective_area_target / (grid * grid))) for sp in spaces]
+        total_target = sum(target_areas_g)
 
-        # Upper bounds: generous to allow flexibility
         max_area_g = max(target_areas_g) * 4
-        max_dim_g = int(math.sqrt(max_area_g)) * 4
+        max_dim_g = max(8, int(math.sqrt(total_target) * 3.0))
+        max_coord_g = max_dim_g * 3
 
         model = cp_model.CpModel()
 
-        xs, ys, ws, hs = [], [], [], []
+        xs, ys, ws, hs, xes, yes = [], [], [], [], [], []
         x_intervals, y_intervals = [], []
         area_vars = []
+        center_x2, center_y2 = [], []
 
         for i, sp in enumerate(spaces):
-            x = model.new_int_var(0, max_dim_g, f"x_{i}")
-            y = model.new_int_var(0, max_dim_g, f"y_{i}")
+            x = model.new_int_var(0, max_coord_g, f"x_{i}")
+            y = model.new_int_var(0, max_coord_g, f"y_{i}")
             w = model.new_int_var(1, max_dim_g, f"w_{i}")
             h = model.new_int_var(1, max_dim_g, f"h_{i}")
+            xe = model.new_int_var(0, max_coord_g + max_dim_g, f"xe_{i}")
+            ye = model.new_int_var(0, max_coord_g + max_dim_g, f"ye_{i}")
+            model.add(xe == x + w)
+            model.add(ye == y + h)
 
             xs.append(x)
             ys.append(y)
             ws.append(w)
             hs.append(h)
+            xes.append(xe)
+            yes.append(ye)
 
-            x_intervals.append(model.new_interval_var(x, w, model.new_int_var(0, 2 * max_dim_g, f"xe_{i}"), f"xi_{i}"))
-            y_intervals.append(model.new_interval_var(y, h, model.new_int_var(0, 2 * max_dim_g, f"ye_{i}"), f"yi_{i}"))
+            x_intervals.append(model.new_interval_var(x, w, xe, f"xi_{i}"))
+            y_intervals.append(model.new_interval_var(y, h, ye, f"yi_{i}"))
 
-            # Area variable (product, linearised)
             area = model.new_int_var(min_areas_g[i], max_area_g, f"area_{i}")
-            model.add_product_equality(area, [w, h])
+            model.AddMultiplicationEquality(area, [w, h])
             area_vars.append(area)
-
-            # Minimum area constraint
             model.add(area >= min_areas_g[i])
+
+            cx2 = model.new_int_var(0, 2 * (max_coord_g + max_dim_g), f"cx2_{i}")
+            cy2 = model.new_int_var(0, 2 * (max_coord_g + max_dim_g), f"cy2_{i}")
+            model.add(cx2 == 2 * x + w)
+            model.add(cy2 == 2 * y + h)
+            center_x2.append(cx2)
+            center_y2.append(cy2)
 
         # No-overlap constraint
         model.add_no_overlap_2d(x_intervals, y_intervals)
 
-        # Objective: minimise sum of area deviations from target
+        # Objective term 1: area accuracy
         deviations = []
         for i in range(len(spaces)):
             dev = model.new_int_var(0, max_area_g, f"dev_{i}")
             model.add_abs_equality(dev, area_vars[i] - target_areas_g[i])
             deviations.append(dev)
 
-        model.minimize(sum(deviations))
+        # Objective term 2: compactness (bounding rectangle)
+        max_x = model.new_int_var(0, max_coord_g + max_dim_g, "bbox_max_x")
+        max_y = model.new_int_var(0, max_coord_g + max_dim_g, "bbox_max_y")
+        model.add_max_equality(max_x, xes)
+        model.add_max_equality(max_y, yes)
+
+        # Objective term 3: keep desired adjacency/connection pairs close.
+        space_index = {sp.space_id: i for i, sp in enumerate(spaces)}
+        desired_pairs = set((min(a, b), max(a, b)) for a, b in (topo.adjacent_pairs() + topo.connected_pairs()))
+        pair_dist_vars = []
+        for a, b in desired_pairs:
+            ia = space_index.get(a)
+            ib = space_index.get(b)
+            if ia is None or ib is None:
+                continue
+            dx = model.new_int_var(0, 2 * (max_coord_g + max_dim_g), f"pair_dx_{ia}_{ib}")
+            dy = model.new_int_var(0, 2 * (max_coord_g + max_dim_g), f"pair_dy_{ia}_{ib}")
+            model.add_abs_equality(dx, center_x2[ia] - center_x2[ib])
+            model.add_abs_equality(dy, center_y2[ia] - center_y2[ib])
+            pair_dist_vars.append(dx)
+            pair_dist_vars.append(dy)
+
+        model.minimize(
+            100 * sum(deviations)
+            + 10 * (max_x + max_y)
+            + sum(pair_dist_vars)
+        )
 
         # Solve
         solver = cp_model.CpSolver()

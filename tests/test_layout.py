@@ -103,6 +103,17 @@ class TestHeuristicSolver:
         assert aspect <= 2.2
 
 
+class TestOrtoolsSolver:
+    def test_returns_rects_without_overlap(self):
+        pytest.importorskip("ortools")
+        from topo2ifc.layout.solver_ortools import OrtoolsSolver
+
+        topo = _make_topo()
+        rects = OrtoolsSolver(SolverConfig(seed=42, solver_time_limit_sec=5)).solve(topo)
+        assert len(rects) == len(topo.spaces)
+        assert check_overlaps(rects) == []
+
+
 class TestRectTouch:
     def test_horizontal_touch(self):
         a = LayoutRect("a", 0, 0, 5, 4)

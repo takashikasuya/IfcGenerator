@@ -34,6 +34,12 @@ AI agents must read this file before starting work and mark each task `[x]` when
 - [x] Derive `IfcBuildingStorey.Name` from retained RDF storey identifier when available.
 - [x] Add regression tests for single-storey storey-label preservation.
 
+### H-6 Layout/Geometry quality overhaul
+- [x] Rebuild wall extraction to guarantee building envelope (exterior walls) and interior partitions from shared boundaries.
+- [x] Change slab generation to per-storey merged slabs so all spaces are on a continuous slab.
+- [x] Strengthen OR-Tools CP-SAT objective with compactness and topology-aware proximity terms.
+- [x] Add regression tests for exterior wall presence and merged slab coverage.
+
 ---
 
 ## Phase 1 – SBCO Vocabulary Support

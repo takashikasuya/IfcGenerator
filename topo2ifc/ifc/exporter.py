@@ -269,7 +269,7 @@ class IfcExporter:
             "root.create_entity",
             ifc,
             ifc_class="IfcWall",
-            name="Wall",
+            name="ExteriorWall" if wall.is_exterior else "PartitionWall",
         )
         # Wall profile: rectangle (length × thickness), extruded to height
         length = wall.length

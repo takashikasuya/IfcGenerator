@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from shapely.geometry import Polygon
+from shapely.ops import unary_union
 
 
 @dataclass
@@ -27,17 +28,30 @@ def extract_slabs(
     slab_thickness: float = 0.15,
     space_elevations: Optional[dict[str, float]] = None,
 ) -> list[SlabSpec]:
-    """Return one SlabSpec per space polygon."""
+    """Return merged storey slabs (one slab per elevation group)."""
     space_elevations = space_elevations or {}
-    return [
-        SlabSpec(
-            space_id=sid,
-            polygon=poly,
-            elevation=space_elevations.get(sid, elevation),
-            thickness=slab_thickness,
+    grouped: dict[float, list[Polygon]] = {}
+    for sid, poly in polygons.items():
+        elev = round(space_elevations.get(sid, elevation), 3)
+        grouped.setdefault(elev, []).append(poly)
+
+    slabs: list[SlabSpec] = []
+    for elev, polys in grouped.items():
+        merged = unary_union(polys)
+        if isinstance(merged, Polygon):
+            slab_poly = merged
+        else:
+            # Keep a single polygon for v0.1 exporter by using envelope.
+            slab_poly = merged.envelope
+        slabs.append(
+            SlabSpec(
+                space_id=f"__floor__{elev:.3f}",
+                polygon=slab_poly,
+                elevation=elev,
+                thickness=slab_thickness,
+            )
         )
-        for sid, poly in polygons.items()
-    ]
+    return slabs
 
 
 def merge_slabs(slabs: list[SlabSpec]) -> SlabSpec | None:

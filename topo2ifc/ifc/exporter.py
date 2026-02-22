@@ -218,7 +218,7 @@ class IfcExporter:
             # 2-D footprint extruded to wall height
             height = spec.height or self.geo.wall_height
             shape = self._extruded_rect_shape(
-                rect.x, rect.y, rect.width, rect.height, height, body_ctx
+                0.0, 0.0, rect.width, rect.height, height, body_ctx
             )
             ifcopenshell.api.run(
                 "geometry.assign_representation",

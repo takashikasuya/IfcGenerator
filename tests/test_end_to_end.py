@@ -199,6 +199,50 @@ class TestEndToEnd:
         ifc2 = ifcopenshell.open(str(out))
         assert len(ifc2.by_type("IfcSlab")) == 1
 
+    def test_ifc_space_profile_is_local_coordinates(self, tmp_path, minimal_ttl):
+        """IfcSpace profile origin should be local (no double XY translation)."""
+        import ifcopenshell
+
+        from topo2ifc.config import Config
+        from topo2ifc.geometry.doors import extract_doors
+        from topo2ifc.geometry.slabs import extract_slabs
+        from topo2ifc.geometry.walls import extract_walls
+        from topo2ifc.ifc.exporter import IfcExporter
+        from topo2ifc.layout.postprocess import snap_to_grid, to_shapely_polygons
+        from topo2ifc.layout.solver_heuristic import HeuristicSolver
+        from topo2ifc.rdf.loader import RDFLoader
+        from topo2ifc.topology.graph import TopologyGraph
+
+        loader = RDFLoader(minimal_ttl)
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+        topo = TopologyGraph.from_parts(spaces, loader.extract_adjacencies(g), loader.extract_connections(g))
+        rects = snap_to_grid(HeuristicSolver().solve(topo))
+        polygons = to_shapely_polygons(rects)
+        rect_by_id = {r.space_id: r for r in rects}
+        name_to_rect = {s.name: rect_by_id[s.space_id] for s in spaces}
+
+        out = tmp_path / "space_local.ifc"
+        IfcExporter(Config.default()).export(
+            spaces,
+            rects,
+            extract_walls(polygons),
+            extract_slabs(polygons),
+            extract_doors(polygons, topo.connected_pairs()),
+            out,
+        )
+
+        ifc2 = ifcopenshell.open(str(out))
+        for sp in ifc2.by_type("IfcSpace"):
+            rect = name_to_rect.get(sp.Name)
+            assert rect is not None
+            rep = sp.Representation.Representations[0]
+            solid = rep.Items[0]
+            profile = solid.SweptArea
+            pos = profile.Position.Location.Coordinates
+            assert float(pos[0]) == pytest.approx(rect.width / 2.0, abs=1e-6)
+            assert float(pos[1]) == pytest.approx(rect.height / 2.0, abs=1e-6)
+
     def test_ifc_uses_metre_length_unit(self, tmp_path, minimal_ttl):
         """Generated IFC should use metres as the default length unit."""
         import ifcopenshell

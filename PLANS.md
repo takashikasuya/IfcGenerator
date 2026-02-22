@@ -40,6 +40,11 @@ AI agents must read this file before starting work and mark each task `[x]` when
 - [x] Strengthen OR-Tools CP-SAT objective with compactness and topology-aware proximity terms.
 - [x] Add regression tests for exterior wall presence and merged slab coverage.
 
+### H-7 Fix space placement relative to slab
+- [x] Add regression test to ensure IfcSpace profile is local (not globally offset twice).
+- [x] Fix IfcSpace geometry creation to avoid double XY translation.
+- [x] Validate that generated spaces sit on the merged slab footprint.
+
 ---
 
 ## Phase 1 – SBCO Vocabulary Support

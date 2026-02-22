@@ -1,0 +1,40 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix topo: <https://topo2ifc.example.org/ont#> .
+
+# Three-room + corridor example
+topo:room_A a topo:Space ;
+    rdfs:label "Room A" ;
+    topo:category "meeting" ;
+    topo:areaTarget "20.0"^^xsd:float ;
+    topo:areaMin "15.0"^^xsd:float ;
+    topo:height "2.8"^^xsd:float .
+
+topo:room_B a topo:Space ;
+    rdfs:label "Room B" ;
+    topo:category "office" ;
+    topo:areaTarget "25.0"^^xsd:float ;
+    topo:areaMin "18.0"^^xsd:float .
+
+topo:room_C a topo:Space ;
+    rdfs:label "Room C" ;
+    topo:category "toilet" ;
+    topo:areaTarget "8.0"^^xsd:float ;
+    topo:areaMin "5.0"^^xsd:float .
+
+topo:corridor a topo:Space ;
+    rdfs:label "Corridor" ;
+    topo:category "corridor" ;
+    topo:areaTarget "15.0"^^xsd:float ;
+    topo:areaMin "10.0"^^xsd:float .
+
+# Adjacency
+topo:room_A topo:adjacentTo topo:corridor .
+topo:room_B topo:adjacentTo topo:corridor .
+topo:room_C topo:adjacentTo topo:corridor .
+
+# Connections (doors)
+topo:room_A topo:connectedTo topo:corridor .
+topo:room_B topo:connectedTo topo:corridor .
+topo:room_C topo:connectedTo topo:corridor .

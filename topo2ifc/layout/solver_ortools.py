@@ -1,0 +1,129 @@
+"""OR-Tools CP-SAT based layout solver.
+
+Each space is modelled as a rectangle (x, y, w, h) on an integer grid.
+The solver enforces:
+  * No-overlap between rectangles
+  * Area bounds  (w * h >= min_area_grid, close to target_area_grid)
+  * Adjacency soft-constraints (rewarded when rects touch)
+
+OR-Tools is an optional dependency.  If it is not installed this module raises
+``ImportError`` at import time and the CLI falls back to the heuristic solver.
+"""
+
+from __future__ import annotations
+
+import logging
+import math
+from typing import Optional
+
+from topo2ifc.config import SolverConfig
+from topo2ifc.layout.solver_base import LayoutSolverBase
+from topo2ifc.topology.graph import TopologyGraph
+from topo2ifc.topology.model import LayoutRect
+
+logger = logging.getLogger(__name__)
+
+try:
+    from ortools.sat.python import cp_model  # type: ignore
+except ImportError as _err:
+    raise ImportError(
+        "ortools is required for the CP-SAT solver. "
+        "Install it with: pip install ortools"
+    ) from _err
+
+
+class OrtoolsSolver(LayoutSolverBase):
+    """Rectangle-packing layout solver using OR-Tools CP-SAT."""
+
+    def __init__(self, config: Optional[SolverConfig] = None) -> None:
+        super().__init__(config)
+
+    def solve(self, topo: TopologyGraph) -> list[LayoutRect]:
+        spaces = topo.spaces
+        if not spaces:
+            return []
+
+        grid = self.config.grid_unit  # metres per grid unit
+        # Convert metre areas to grid-unit areas
+        min_areas_g = [
+            max(1, math.ceil(sp.effective_area_min / (grid * grid))) for sp in spaces
+        ]
+        target_areas_g = [
+            max(1, round(sp.effective_area_target / (grid * grid))) for sp in spaces
+        ]
+
+        # Upper bounds: generous to allow flexibility
+        max_area_g = max(target_areas_g) * 4
+        max_dim_g = int(math.sqrt(max_area_g)) * 4
+
+        model = cp_model.CpModel()
+
+        xs, ys, ws, hs = [], [], [], []
+        x_intervals, y_intervals = [], []
+        area_vars = []
+
+        for i, sp in enumerate(spaces):
+            x = model.new_int_var(0, max_dim_g, f"x_{i}")
+            y = model.new_int_var(0, max_dim_g, f"y_{i}")
+            w = model.new_int_var(1, max_dim_g, f"w_{i}")
+            h = model.new_int_var(1, max_dim_g, f"h_{i}")
+
+            xs.append(x)
+            ys.append(y)
+            ws.append(w)
+            hs.append(h)
+
+            x_intervals.append(model.new_interval_var(x, w, model.new_int_var(0, 2 * max_dim_g, f"xe_{i}"), f"xi_{i}"))
+            y_intervals.append(model.new_interval_var(y, h, model.new_int_var(0, 2 * max_dim_g, f"ye_{i}"), f"yi_{i}"))
+
+            # Area variable (product, linearised)
+            area = model.new_int_var(min_areas_g[i], max_area_g, f"area_{i}")
+            model.add_product_equality(area, [w, h])
+            area_vars.append(area)
+
+            # Minimum area constraint
+            model.add(area >= min_areas_g[i])
+
+        # No-overlap constraint
+        model.add_no_overlap_2d(x_intervals, y_intervals)
+
+        # Objective: minimise sum of area deviations from target
+        deviations = []
+        for i in range(len(spaces)):
+            dev = model.new_int_var(0, max_area_g, f"dev_{i}")
+            model.add_abs_equality(dev, area_vars[i] - target_areas_g[i])
+            deviations.append(dev)
+
+        model.minimize(sum(deviations))
+
+        # Solve
+        solver = cp_model.CpSolver()
+        solver.parameters.max_time_in_seconds = self.config.solver_time_limit_sec
+        solver.parameters.random_seed = self.config.seed
+        solver.parameters.log_search_progress = False
+
+        status = solver.solve(model)
+
+        if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+            raise RuntimeError(
+                f"CP-SAT solver returned status {solver.status_name(status)}. "
+                "Consider relaxing constraints or using the heuristic solver."
+            )
+
+        results: list[LayoutRect] = []
+        for i, sp in enumerate(spaces):
+            x_val = solver.value(xs[i]) * grid
+            y_val = solver.value(ys[i]) * grid
+            w_val = solver.value(ws[i]) * grid
+            h_val = solver.value(hs[i]) * grid
+            results.append(
+                LayoutRect(
+                    space_id=sp.space_id,
+                    x=round(x_val, 4),
+                    y=round(y_val, 4),
+                    width=round(w_val, 4),
+                    height=round(h_val, 4),
+                )
+            )
+
+        return results

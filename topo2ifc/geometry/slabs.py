@@ -1,0 +1,54 @@
+"""Slab (floor) geometry utilities.
+
+v0.1: One IfcSlab per space (or one for the entire storey).
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from shapely.geometry import Polygon
+
+
+@dataclass
+class SlabSpec:
+    """Specification for a single floor slab."""
+
+    space_id: str  # owning space (or "__floor__" for storey-wide slab)
+    polygon: Polygon
+    elevation: float = 0.0
+    thickness: float = 0.15
+
+
+def extract_slabs(
+    polygons: dict[str, Polygon],
+    elevation: float = 0.0,
+    slab_thickness: float = 0.15,
+) -> list[SlabSpec]:
+    """Return one SlabSpec per space polygon."""
+    return [
+        SlabSpec(
+            space_id=sid,
+            polygon=poly,
+            elevation=elevation,
+            thickness=slab_thickness,
+        )
+        for sid, poly in polygons.items()
+    ]
+
+
+def merge_slabs(slabs: list[SlabSpec]) -> SlabSpec | None:
+    """Merge all per-space slabs into a single storey slab."""
+    if not slabs:
+        return None
+    from shapely.ops import unary_union
+
+    merged = unary_union([s.polygon for s in slabs])
+    elevation = slabs[0].elevation
+    thickness = slabs[0].thickness
+    return SlabSpec(
+        space_id="__floor__",
+        polygon=merged,
+        elevation=elevation,
+        thickness=thickness,
+    )

@@ -100,3 +100,7 @@ topo2ifc/
 pip install pytest
 pytest tests/
 ```
+
+### ドキュメント
+
+- 実行フローの詳細: [docs/runtime-walkthrough.md](docs/runtime-walkthrough.md)

@@ -159,3 +159,13 @@ PROP_STOREY_HEIGHT: tuple[URIRef, ...] = (
     TOPO.floorHeight,
     SBCO.storeyHeight,
 )
+
+
+# Equipment data properties
+PROP_DEVICE_TYPE: tuple[URIRef, ...] = (
+    SBCO.deviceType,
+)
+
+PROP_MAINTENANCE_INTERVAL: tuple[URIRef, ...] = (
+    SBCO.maintenanceInterval,
+)

@@ -221,12 +221,17 @@ class RDFLoader:
                     if space_id:
                         break
 
+                device_type = _first_literal(g, subject, V.PROP_DEVICE_TYPE)
+                maintenance_interval = _first_literal(g, subject, V.PROP_MAINTENANCE_INTERVAL)
+
                 equipment_list.append(
                     EquipmentSpec(
                         equipment_id=eid,
                         name=name or eid.split("#")[-1].split("/")[-1],
                         space_id=space_id,
                         equipment_class=str(equipment_class).split("#")[-1].split("/")[-1],
+                        device_type=device_type,
+                        maintenance_interval=maintenance_interval,
                     )
                 )
 

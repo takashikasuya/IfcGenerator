@@ -98,6 +98,8 @@ class EquipmentSpec:
     name: str = ""
     space_id: Optional[str] = None
     equipment_class: str = "Equipment"
+    device_type: Optional[str] = None
+    maintenance_interval: Optional[str] = None
 
 
 # --------------------------------------------------------------------------- #

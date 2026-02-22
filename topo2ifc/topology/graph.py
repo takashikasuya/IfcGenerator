@@ -88,11 +88,28 @@ class TopologyGraph:
         return iter(self._g.neighbors(space_id))
 
     def bfs_order(self, start: str | None = None) -> list[str]:
-        """Return nodes in BFS order, starting from *start* (or first node)."""
+        """Return BFS order covering all graph components.
+
+        The first traversal starts from *start* (or the first node). Any
+        disconnected components are then traversed in insertion order so all
+        spaces are returned.
+        """
         if not self._g.nodes:
             return []
         root = start or next(iter(self._g.nodes))
-        return list(nx.bfs_tree(self._g, root).nodes)
+
+        order: list[str] = []
+        seen: set[str] = set()
+        roots = [root] + [n for n in self._g.nodes if n != root]
+        for r in roots:
+            if r in seen:
+                continue
+            for node in nx.bfs_tree(self._g, r).nodes:
+                if node in seen:
+                    continue
+                seen.add(node)
+                order.append(node)
+        return order
 
     def __len__(self) -> int:
         return len(self._g.nodes)

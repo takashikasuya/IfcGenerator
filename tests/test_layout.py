@@ -77,6 +77,16 @@ class TestHeuristicSolver:
         assert len(rects) == 1
         assert rects[0].area > 0
 
+    def test_disconnected_spaces_all_placed(self):
+        topo = TopologyGraph()
+        topo.add_space(SpaceSpec("s1", area_target=20.0))
+        topo.add_space(SpaceSpec("s2", area_target=18.0))
+        topo.add_space(SpaceSpec("s3", area_target=16.0))
+        solver = HeuristicSolver(SolverConfig(seed=0))
+        rects = solver.solve(topo)
+        assert len(rects) == 3
+        assert {r.space_id for r in rects} == {"s1", "s2", "s3"}
+
 
 class TestRectTouch:
     def test_horizontal_touch(self):

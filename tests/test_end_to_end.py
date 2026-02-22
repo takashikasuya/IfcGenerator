@@ -366,3 +366,48 @@ class TestMultiStoreyEndToEnd:
         storey_names = {st.Name for st in ifc2.by_type("IfcBuildingStorey")}
         # Should have 2 unique names
         assert len(storey_names) == 2
+
+    def test_two_storey_walls_assigned_to_each_storey(self, tmp_path):
+        """IfcWall instances should be contained in their respective storeys."""
+        import ifcopenshell
+
+        from topo2ifc.config import Config
+        from topo2ifc.geometry.doors import extract_doors
+        from topo2ifc.geometry.slabs import extract_slabs
+        from topo2ifc.geometry.walls import extract_walls
+        from topo2ifc.ifc.exporter import IfcExporter
+        from topo2ifc.layout.postprocess import snap_to_grid, to_shapely_polygons
+        from topo2ifc.layout.solver_heuristic import HeuristicSolver
+        from topo2ifc.rdf.loader import RDFLoader
+        from topo2ifc.topology.graph import TopologyGraph
+
+        ttl = FIXTURES / "two_storey.ttl"
+        loader = RDFLoader(ttl)
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+        topo = TopologyGraph.from_parts(spaces, loader.extract_adjacencies(g), loader.extract_connections(g))
+        rects = snap_to_grid(HeuristicSolver().solve(topo))
+        polygons = to_shapely_polygons(rects)
+        space_elevations = {sp.space_id: (sp.storey_elevation or 0.0) for sp in spaces}
+
+        out = tmp_path / "two_storey_walls.ifc"
+        IfcExporter(Config.default()).export(
+            spaces,
+            rects,
+            extract_walls(polygons, space_elevations=space_elevations),
+            extract_slabs(polygons, space_elevations=space_elevations),
+            extract_doors(polygons, topo.connected_pairs(), space_elevations=space_elevations),
+            out,
+        )
+
+        ifc2 = ifcopenshell.open(str(out))
+        walls_by_storey: dict[str, int] = {}
+        for rel in ifc2.by_type("IfcRelContainedInSpatialStructure"):
+            storey = rel.RelatingStructure
+            if not storey or not storey.is_a("IfcBuildingStorey"):
+                continue
+            count = sum(1 for elem in rel.RelatedElements if elem.is_a("IfcWall"))
+            if count > 0:
+                walls_by_storey[storey.GlobalId] = count
+
+        assert len(walls_by_storey) >= 2

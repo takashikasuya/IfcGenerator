@@ -6,6 +6,7 @@ v0.1: One IfcSlab per space (or one for the entire storey).
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Optional
 
 from shapely.geometry import Polygon
 
@@ -24,13 +25,15 @@ def extract_slabs(
     polygons: dict[str, Polygon],
     elevation: float = 0.0,
     slab_thickness: float = 0.15,
+    space_elevations: Optional[dict[str, float]] = None,
 ) -> list[SlabSpec]:
     """Return one SlabSpec per space polygon."""
+    space_elevations = space_elevations or {}
     return [
         SlabSpec(
             space_id=sid,
             polygon=poly,
-            elevation=elevation,
+            elevation=space_elevations.get(sid, elevation),
             thickness=slab_thickness,
         )
         for sid, poly in polygons.items()

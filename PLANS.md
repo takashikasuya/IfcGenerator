@@ -12,6 +12,12 @@ AI agents must read this file before starting work and mark each task `[x]` when
 - [x] Update IFC context setup to assign metre-based project units explicitly.
 - [x] Validate that generated geometry remains visible in standard IFC viewers.
 
+### H-2 Fix multi-storey layout and geometry placement
+- [x] Fix heuristic layout ordering so disconnected topology components are all placed.
+- [x] Propagate per-space storey elevation into slab/wall/door geometry specs.
+- [x] Place and container-assign walls/doors/slabs to the correct `IfcBuildingStorey`.
+- [x] Add regression tests for disconnected layout and multi-storey wall placement.
+
 ---
 
 ## Phase 1 – SBCO Vocabulary Support

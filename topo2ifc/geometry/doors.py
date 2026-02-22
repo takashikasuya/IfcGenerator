@@ -25,6 +25,7 @@ class DoorSpec:
     width: float
     height: float
     angle: float = 0.0  # rotation in degrees (0 = opening along X-axis)
+    elevation: float = 0.0
 
 
 def extract_doors(
@@ -33,6 +34,7 @@ def extract_doors(
     door_width: float = 0.9,
     door_height: float = 2.0,
     tol: float = 0.05,
+    space_elevations: Optional[dict[str, float]] = None,
 ) -> list[DoorSpec]:
     """Return a :class:`DoorSpec` for each connectedTo pair.
 
@@ -48,6 +50,7 @@ def extract_doors(
         Tolerance for boundary detection.
     """
     doors: list[DoorSpec] = []
+    space_elevations = space_elevations or {}
 
     for a, b in connected_pairs:
         poly_a = polygons.get(a)
@@ -69,6 +72,10 @@ def extract_doors(
                 width=door_width,
                 height=door_height,
                 angle=angle,
+                elevation=min(
+                    space_elevations.get(a, 0.0),
+                    space_elevations.get(b, 0.0),
+                ),
             )
         )
 

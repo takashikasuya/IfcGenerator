@@ -31,6 +31,7 @@ class WallSegment:
     is_exterior: bool
     space_id: Optional[str] = None  # owning space (exterior) or None (partition)
     shared_with: Optional[str] = None  # neighbouring space id for partition walls
+    elevation: float = 0.0
 
     @property
     def length(self) -> float:
@@ -52,6 +53,7 @@ def extract_walls(
     wall_thickness: float = 0.15,
     wall_height: float = 2.8,
     tol: float = 0.05,
+    space_elevations: Optional[dict[str, float]] = None,
 ) -> list[WallSegment]:
     """Extract wall segments from all space polygons.
 
@@ -74,6 +76,7 @@ def extract_walls(
     space_ids = list(polygons.keys())
     segments: list[WallSegment] = []
     processed_partitions: set[frozenset] = set()
+    space_elevations = space_elevations or {}
 
     for sid, poly in polygons.items():
         for edge in exterior_edges(poly):
@@ -108,6 +111,7 @@ def extract_walls(
                         is_exterior=False,
                         space_id=sid,
                         shared_with=shared_partner,
+                        elevation=space_elevations.get(sid, 0.0),
                     )
                 )
             else:
@@ -123,6 +127,7 @@ def extract_walls(
                         height=wall_height,
                         is_exterior=True,
                         space_id=sid,
+                        elevation=space_elevations.get(sid, 0.0),
                     )
                 )
 

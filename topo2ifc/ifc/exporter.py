@@ -121,6 +121,13 @@ class IfcExporter:
                     return st
             return default_storey
 
+        def _get_storey_by_elevation(elevation: float):
+            key = round(elevation, 3)
+            for k, st in storey_map.items():
+                if abs(k - key) < _ELEV_TOL:
+                    return st
+            return default_storey
+
         # ---- Spaces -------------------------------------------------- #
         ifc_spaces: dict[str, object] = {}
         for spec in spaces:
@@ -140,16 +147,11 @@ class IfcExporter:
         for slab in slabs:
             ifc_slab = self._create_slab(slab, body_ctx)
             # Assign slab to the storey matching its elevation
-            slab_storey = default_storey
-            for k, st in storey_map.items():
-                if abs(k - round(slab.elevation, 3)) < _ELEV_TOL:
-                    slab_storey = st
-                    break
             ifcopenshell.api.run(
                 "spatial.assign_container",
                 ifc,
                 products=[ifc_slab],
-                relating_structure=slab_storey,
+                relating_structure=_get_storey_by_elevation(slab.elevation),
             )
 
         # ---- Walls --------------------------------------------------- #
@@ -159,7 +161,7 @@ class IfcExporter:
                 "spatial.assign_container",
                 ifc,
                 products=[ifc_wall],
-                relating_structure=default_storey,
+                relating_structure=_get_storey_by_elevation(wall.elevation),
             )
 
         # ---- Doors --------------------------------------------------- #
@@ -169,7 +171,7 @@ class IfcExporter:
                 "spatial.assign_container",
                 ifc,
                 products=[ifc_door],
-                relating_structure=default_storey,
+                relating_structure=_get_storey_by_elevation(door.elevation),
             )
 
         ifc.write(str(output_path))
@@ -208,7 +210,11 @@ class IfcExporter:
                 representation=shape,
             )
             # Placement at origin of footprint
-            placement = self._local_placement(rect.x, rect.y, 0.0)
+            placement = self._local_placement(
+                rect.x,
+                rect.y,
+                spec.storey_elevation or 0.0,
+            )
             space.ObjectPlacement = placement
 
         add_space_pset(ifc, space, category=spec.category, area=rect.area if rect else None)
@@ -262,7 +268,7 @@ class IfcExporter:
         dx, dy = wall.direction
         angle = math.atan2(dy, dx)
         entity.ObjectPlacement = self._local_placement_rotated(
-            wall.x1, wall.y1, 0.0, angle
+            wall.x1, wall.y1, wall.elevation, angle
         )
         return entity
 
@@ -288,7 +294,12 @@ class IfcExporter:
             "geometry.assign_representation", ifc, product=entity, representation=shape
         )
         angle = math.radians(door.angle)
-        entity.ObjectPlacement = self._local_placement_rotated(door.x, door.y, 0.0, angle)
+        entity.ObjectPlacement = self._local_placement_rotated(
+            door.x,
+            door.y,
+            door.elevation,
+            angle,
+        )
         return entity
 
     # ------------------------------------------------------------------ #
@@ -355,4 +366,3 @@ class IfcExporter:
                 ifc.createIfcDirection((cos_a, sin_a, 0.0)),
             ),
         )
-

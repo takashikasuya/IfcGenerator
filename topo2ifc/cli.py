@@ -123,10 +123,30 @@ def main(
 
     # ---- Geometry ----------------------------------------------------- #
     polygons = to_shapely_polygons(rects)
-    walls = extract_walls(polygons, cfg.geometry.wall_thickness, cfg.geometry.wall_height)
-    slabs = extract_slabs(polygons, cfg.geometry.storey_elevation, cfg.geometry.slab_thickness)
+    space_elevations = {
+        sp.space_id: (sp.storey_elevation if sp.storey_elevation is not None else cfg.geometry.storey_elevation)
+        for sp in spaces
+    }
+    walls = extract_walls(
+        polygons,
+        cfg.geometry.wall_thickness,
+        cfg.geometry.wall_height,
+        space_elevations=space_elevations,
+    )
+    slabs = extract_slabs(
+        polygons,
+        cfg.geometry.storey_elevation,
+        cfg.geometry.slab_thickness,
+        space_elevations=space_elevations,
+    )
     conn_pairs = topo.connected_pairs()
-    doors = extract_doors(polygons, conn_pairs, cfg.geometry.door_width, cfg.geometry.door_height)
+    doors = extract_doors(
+        polygons,
+        conn_pairs,
+        cfg.geometry.door_width,
+        cfg.geometry.door_height,
+        space_elevations=space_elevations,
+    )
     logger.info("Geometry: %d walls, %d slabs, %d doors", len(walls), len(slabs), len(doors))
 
     # ---- IFC export --------------------------------------------------- #

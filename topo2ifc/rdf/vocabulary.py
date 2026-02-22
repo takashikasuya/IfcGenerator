@@ -45,6 +45,14 @@ SPACE_CLASSES: tuple[URIRef, ...] = (
     SBCO.Space,
 )
 
+# Storey / floor-level concepts
+STOREY_CLASSES: tuple[URIRef, ...] = (
+    BOT.Storey,
+    BRICK.Floor,
+    SBCO.Level,
+    TOPO.Storey,
+)
+
 # --------------------------------------------------------------------------- #
 # Object Properties
 # --------------------------------------------------------------------------- #
@@ -61,6 +69,28 @@ CONNECTED_TO: tuple[URIRef, ...] = (
     TOPO.connectedTo,
     BOT.interfaceOf,
     BRICK.connectedTo,
+)
+
+# Storey → Space containment
+HAS_SPACE: tuple[URIRef, ...] = (
+    BOT.hasSpace,
+    BRICK.hasPart,
+    SBCO.hasPart,
+    TOPO.hasSpace,
+)
+
+# Space → Storey containment (inverse)
+IS_PART_OF_STOREY: tuple[URIRef, ...] = (
+    BOT.isSpaceOf,
+    BRICK.isPartOf,
+    SBCO.isPartOf,
+    TOPO.isPartOf,
+)
+
+# Building → Storey containment
+HAS_STOREY: tuple[URIRef, ...] = (
+    BOT.hasStorey,
+    TOPO.hasStorey,
 )
 
 # --------------------------------------------------------------------------- #
@@ -97,3 +127,22 @@ PROP_HEIGHT: tuple[URIRef, ...] = (
 
 PROP_ASPECT_RATIO_MIN: tuple[URIRef, ...] = (TOPO.aspectRatioMin,)
 PROP_ASPECT_RATIO_MAX: tuple[URIRef, ...] = (TOPO.aspectRatioMax,)
+
+# Storey elevation / level number
+PROP_ELEVATION: tuple[URIRef, ...] = (
+    TOPO.elevation,
+    TOPO.storeyElevation,
+    SBCO.elevation,
+)
+
+PROP_LEVEL_NUMBER: tuple[URIRef, ...] = (
+    TOPO.levelNumber,
+    SBCO.levelNumber,
+    TOPO.storeyIndex,
+)
+
+PROP_STOREY_HEIGHT: tuple[URIRef, ...] = (
+    TOPO.storeyHeight,
+    TOPO.floorHeight,
+    SBCO.storeyHeight,
+)

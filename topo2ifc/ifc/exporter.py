@@ -3,11 +3,12 @@
 Pipeline
 --------
 1. Create IFC model + spatial hierarchy  (ifc_context)
-2. For each space  → IfcSpace  + extruded footprint
-3. For each slab   → IfcSlab   + extruded footprint
-4. For each wall   → IfcWall   + extruded rectangle
-5. For each door   → IfcDoor   + position marker
-6. Write IFC file
+2. One IfcBuildingStorey per distinct storey elevation found in the spaces
+3. For each space  → IfcSpace  + extruded footprint  (placed in its storey)
+4. For each slab   → IfcSlab   + extruded footprint
+5. For each wall   → IfcWall   + extruded rectangle
+6. For each door   → IfcDoor   + position marker
+7. Write IFC file
 """
 
 from __future__ import annotations
@@ -27,11 +28,14 @@ from topo2ifc.config import Config, GeometryConfig
 from topo2ifc.geometry.doors import DoorSpec
 from topo2ifc.geometry.slabs import SlabSpec
 from topo2ifc.geometry.walls import WallSegment
-from topo2ifc.ifc.ifc_context import create_ifc_model
+from topo2ifc.ifc.ifc_context import add_storey, create_ifc_model
 from topo2ifc.ifc.psets import add_space_pset
 from topo2ifc.topology.model import LayoutRect, SpaceSpec
 
 logger = logging.getLogger(__name__)
+
+# Elevation tolerance for grouping spaces into the same storey (m)
+_ELEV_TOL = 0.01
 
 
 class IfcExporter:
@@ -58,17 +62,64 @@ class IfcExporter:
     ) -> ifcopenshell.file:
         """Generate the IFC model and write it to *output_path*.
 
+        When spaces carry storey membership (``storey_elevation`` set),
+        one IfcBuildingStorey is created per distinct elevation and each
+        space is assigned to the correct storey.  When no storey info is
+        present all elements are placed on a single ground-floor storey.
+
         Returns the :class:`ifcopenshell.file` object.
         """
         self.ifc, self._ctx = create_ifc_model(
             storey_elevation=self.geo.storey_elevation,
         )
         ifc = self.ifc
-        storey = self._ctx["storey"]
         body_ctx = self._ctx["body_context"]
+        building = self._ctx["building"]
+        default_storey = self._ctx["storey"]
 
         rect_by_id = {r.space_id: r for r in rects}
-        spec_by_id = {s.space_id: s for s in spaces}
+
+        # ---- Build storey map ---------------------------------------- #
+        # Collect distinct elevations from spaces; fall back to the default storey.
+        storey_map: dict[float, object] = {}  # elevation → IfcBuildingStorey
+
+        for spec in spaces:
+            elev = spec.storey_elevation
+            if elev is None:
+                continue
+            # Round to avoid floating-point duplicates
+            key = round(elev, 3)
+            if not any(abs(key - k) < _ELEV_TOL for k in storey_map):
+                storey_map[key] = None  # will be created next
+
+        if storey_map:
+            # Create one IfcBuildingStorey per distinct elevation.
+            # Use the default storey (already created at elevation 0) only if
+            # exactly one storey exists at elevation ≈ 0.
+            elevations_sorted = sorted(storey_map.keys())
+            for i, elev in enumerate(elevations_sorted):
+                # Derive a name from elevation
+                name = f"Level {elev:.1f}m" if elev != 0.0 else "Ground Floor"
+                if i == 0 and abs(elev) < _ELEV_TOL:
+                    # Reuse the already-created default storey at elevation 0
+                    storey_map[elev] = default_storey
+                    default_storey.Name = name
+                else:
+                    storey_map[elev] = add_storey(ifc, building, name, elev)
+        else:
+            # No storey info → everything goes on the default storey
+            storey_map[0.0] = default_storey
+
+        def _get_storey(spec: SpaceSpec):
+            """Return the IfcBuildingStorey for *spec*, or the default storey."""
+            if spec.storey_elevation is None:
+                return default_storey
+            key = round(spec.storey_elevation, 3)
+            # Find closest key within tolerance
+            for k, st in storey_map.items():
+                if abs(k - key) < _ELEV_TOL:
+                    return st
+            return default_storey
 
         # ---- Spaces -------------------------------------------------- #
         ifc_spaces: dict[str, object] = {}
@@ -76,6 +127,7 @@ class IfcExporter:
             rect = rect_by_id.get(spec.space_id)
             ifc_sp = self._create_space(spec, rect, body_ctx)
             ifc_spaces[spec.space_id] = ifc_sp
+            storey = _get_storey(spec)
             # IfcSpace is a spatial element → use aggregate.assign_object
             ifcopenshell.api.run(
                 "aggregate.assign_object",
@@ -87,11 +139,17 @@ class IfcExporter:
         # ---- Slabs --------------------------------------------------- #
         for slab in slabs:
             ifc_slab = self._create_slab(slab, body_ctx)
+            # Assign slab to the storey matching its elevation
+            slab_storey = default_storey
+            for k, st in storey_map.items():
+                if abs(k - round(slab.elevation, 3)) < _ELEV_TOL:
+                    slab_storey = st
+                    break
             ifcopenshell.api.run(
                 "spatial.assign_container",
                 ifc,
                 products=[ifc_slab],
-                relating_structure=storey,
+                relating_structure=slab_storey,
             )
 
         # ---- Walls --------------------------------------------------- #
@@ -101,7 +159,7 @@ class IfcExporter:
                 "spatial.assign_container",
                 ifc,
                 products=[ifc_wall],
-                relating_structure=storey,
+                relating_structure=default_storey,
             )
 
         # ---- Doors --------------------------------------------------- #
@@ -111,7 +169,7 @@ class IfcExporter:
                 "spatial.assign_container",
                 ifc,
                 products=[ifc_door],
-                relating_structure=storey,
+                relating_structure=default_storey,
             )
 
         ifc.write(str(output_path))
@@ -297,3 +355,4 @@ class IfcExporter:
                 ifc.createIfcDirection((cos_a, sin_a, 0.0)),
             ),
         )
+

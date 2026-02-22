@@ -1,0 +1,64 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix bot:  <https://w3id.org/bot#> .
+@prefix topo: <https://topo2ifc.example.org/ont#> .
+@prefix ex:   <https://example.com/> .
+
+# Building with two storeys
+
+ex:building a bot:Building ;
+    bot:hasStorey ex:storey_1f, ex:storey_2f .
+
+# Ground floor (1F) – elevation 0 m
+ex:storey_1f a bot:Storey ;
+    rdfs:label "1F" ;
+    topo:elevation "0.0"^^xsd:float ;
+    topo:storeyHeight "3.0"^^xsd:float ;
+    topo:levelNumber "1"^^xsd:integer ;
+    bot:hasSpace ex:room_101, ex:room_102, ex:corridor_1f .
+
+# Second floor (2F) – elevation 3 m
+ex:storey_2f a bot:Storey ;
+    rdfs:label "2F" ;
+    topo:elevation "3.0"^^xsd:float ;
+    topo:storeyHeight "3.0"^^xsd:float ;
+    topo:levelNumber "2"^^xsd:integer ;
+    bot:hasSpace ex:room_201, ex:room_202 .
+
+# 1F spaces
+ex:room_101 a bot:Space ;
+    rdfs:label "Office 101" ;
+    topo:areaTarget "25.0"^^xsd:float ;
+    topo:areaMin "18.0"^^xsd:float ;
+    bot:isSpaceOf ex:storey_1f .
+
+ex:room_102 a bot:Space ;
+    rdfs:label "Meeting 102" ;
+    topo:areaTarget "20.0"^^xsd:float ;
+    topo:areaMin "15.0"^^xsd:float ;
+    bot:isSpaceOf ex:storey_1f .
+
+ex:corridor_1f a bot:Space ;
+    rdfs:label "Corridor 1F" ;
+    topo:category "corridor" ;
+    topo:areaTarget "12.0"^^xsd:float ;
+    topo:areaMin "8.0"^^xsd:float ;
+    bot:isSpaceOf ex:storey_1f .
+
+# 2F spaces
+ex:room_201 a bot:Space ;
+    rdfs:label "Office 201" ;
+    topo:areaTarget "25.0"^^xsd:float ;
+    topo:areaMin "18.0"^^xsd:float ;
+    bot:isSpaceOf ex:storey_2f .
+
+ex:room_202 a bot:Space ;
+    rdfs:label "Meeting 202" ;
+    topo:areaTarget "20.0"^^xsd:float ;
+    topo:areaMin "15.0"^^xsd:float ;
+    bot:isSpaceOf ex:storey_2f .
+
+# Adjacency within floors
+ex:room_101 bot:adjacentElement ex:corridor_1f .
+ex:room_102 bot:adjacentElement ex:corridor_1f .

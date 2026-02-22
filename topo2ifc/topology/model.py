@@ -4,6 +4,7 @@ SpaceSpec   – attributes of a single space
 AdjacencyEdge  – boundary-sharing relationship
 ConnectionEdge – traversal (door) relationship
 LayoutRect  – 2-D rectangular placement produced by the Layout Solver
+StoreySpec  – attributes of a building storey / level
 """
 
 from __future__ import annotations
@@ -38,6 +39,22 @@ class SpaceCategory(str, Enum):
 
 
 # --------------------------------------------------------------------------- #
+# Storey
+# --------------------------------------------------------------------------- #
+
+
+@dataclass
+class StoreySpec:
+    """Specification of a building storey / level node from the RDF graph."""
+
+    storey_id: str
+    name: str = ""
+    elevation: float = 0.0          # m above ground
+    storey_height: float = 0.0      # m floor-to-floor (0 = use global default)
+    index: Optional[int] = None     # level number, if declared in RDF
+
+
+# --------------------------------------------------------------------------- #
 # Space
 # --------------------------------------------------------------------------- #
 
@@ -55,6 +72,9 @@ class SpaceSpec:
     aspect_ratio_min: Optional[float] = None
     aspect_ratio_max: Optional[float] = None
     constraints: dict = field(default_factory=dict)
+    # Storey / level membership (populated by RDFLoader.extract_storeys)
+    storey_id: Optional[str] = None
+    storey_elevation: Optional[float] = None  # m, copied from parent StoreySpec
 
     @property
     def space_category(self) -> SpaceCategory:

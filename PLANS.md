@@ -72,6 +72,15 @@ AI agents must read this file before starting work and mark each task `[x]` when
 ### 4-2 Documentation
 - [x] Update `README.md` to add an SBCO-vocabulary example and link to the smartbuilding_ontology repository.
 - [ ] Add a sample SBCO Turtle file under `sample/sbco_example.ttl` that mirrors the example in the smartbuilding_ontology README.
+- [x] Add a step-by-step runtime behavior document under `docs/` and link it from `README.md`.
+- [x] Expand runtime documentation with a per-solver explanation (`heuristic` / `ortools`) and solver selection guidance.
 
 ### 4-3 CI pipeline
 - [x] Add a GitHub Actions workflow (`.github/workflows/ci.yml`) that runs `pytest tests/` on every push and pull request.
+
+## Phase 5 – IFC property enrichment for HVAC integration
+
+### 5-1 Material/thermal metadata on exported building elements
+- [ ] Review wall/slab/door IFC output and define required material-related properties for HVAC simulators.
+- [ ] Add configurable material/thermal metadata in `Config` and export those as IFC property sets/material assignments.
+- [ ] Add end-to-end tests asserting exported IFC contains the new element properties.

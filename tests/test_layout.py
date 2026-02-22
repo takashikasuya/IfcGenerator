@@ -87,6 +87,21 @@ class TestHeuristicSolver:
         assert len(rects) == 3
         assert {r.space_id for r in rects} == {"s1", "s2", "s3"}
 
+    def test_disconnected_layout_is_reasonably_compact(self):
+        topo = TopologyGraph()
+        for i in range(7):
+            topo.add_space(SpaceSpec(f"s{i+1}", area_target=20.0))
+        solver = HeuristicSolver(SolverConfig(seed=0))
+        rects = solver.solve(topo)
+        min_x = min(r.x for r in rects)
+        min_y = min(r.y for r in rects)
+        max_x = max(r.x2 for r in rects)
+        max_y = max(r.y2 for r in rects)
+        total_w = max_x - min_x
+        total_h = max_y - min_y
+        aspect = max(total_w, total_h) / max(1e-9, min(total_w, total_h))
+        assert aspect <= 2.2
+
 
 class TestRectTouch:
     def test_horizontal_touch(self):

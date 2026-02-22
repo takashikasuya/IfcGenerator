@@ -18,6 +18,11 @@ AI agents must read this file before starting work and mark each task `[x]` when
 - [x] Place and container-assign walls/doors/slabs to the correct `IfcBuildingStorey`.
 - [x] Add regression tests for disconnected layout and multi-storey wall placement.
 
+### H-3 Improve building-like layout compactness
+- [x] Replace fixed-width strip packing with dynamic compact packing based on target total area.
+- [x] Add regression test ensuring many disconnected spaces are not all placed in a single row.
+- [x] Validate sample IFC generation now produces a more compact floor layout.
+
 ---
 
 ## Phase 1 – SBCO Vocabulary Support

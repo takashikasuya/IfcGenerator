@@ -67,20 +67,32 @@ class HeuristicSolver(LayoutSolverBase):
         self, topo: TopologyGraph, order: list[str]
     ) -> list[LayoutRect]:
         rects: dict[str, LayoutRect] = {}
-        x_cursor = 0.0
-        y_cursor = 0.0
-        row_height = 0.0
-        strip_width = _DEFAULT_STRIP_WIDTH
+        dims: dict[str, tuple[float, float]] = {}
+        total_area = 0.0
+        max_w = 0.0
+        grid = self.config.grid_unit
 
         for sid in order:
             spec = topo.get_space(sid)
             area = spec.effective_area_target
             w, h = self._initial_dims(area)
-
-            # snap to grid
-            grid = self.config.grid_unit
             w = max(grid, round(w / grid) * grid)
             h = max(grid, round(h / grid) * grid)
+            dims[sid] = (w, h)
+            total_area += w * h
+            max_w = max(max_w, w)
+
+        # Use total target area to derive a compact shelf width.
+        # This prevents long one-directional strips when constraints are sparse.
+        strip_width = max(max_w * 1.8, math.sqrt(total_area) * 1.35)
+        strip_width = min(strip_width, _DEFAULT_STRIP_WIDTH)
+
+        x_cursor = 0.0
+        y_cursor = 0.0
+        row_height = 0.0
+
+        for sid in order:
+            w, h = dims[sid]
 
             # new row if needed
             if x_cursor + w > strip_width and x_cursor > 0:

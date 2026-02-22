@@ -43,6 +43,8 @@ SPACE_CLASSES: tuple[URIRef, ...] = (
     BRICK.Room,
     BRICK.Area,
     SBCO.Space,
+    SBCO.Room,
+    SBCO.Zone,
 )
 
 # Storey / floor-level concepts

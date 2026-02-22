@@ -1,0 +1,368 @@
+@prefix sbco: <https://www.sbco.or.jp/ont/> .
+@prefix sbr: <https://www.sbco.or.jp/ont/resource/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://www.sbco.or.jp/ont/resource/site%3ATokyoSite1> a sbco:Site ;
+  sbco:id "site:TokyoSite1" ;
+  sbco:name "TokyoSite1" ;
+  sbco:hasPart <https://www.sbco.or.jp/ont/resource/building%3Asite%3ATokyoSite1%2FMainBldg> .
+
+<https://www.sbco.or.jp/ont/resource/building%3Asite%3ATokyoSite1%2FMainBldg> a sbco:Building ;
+  sbco:id "building:site:TokyoSite1/MainBldg" ;
+  sbco:name "MainBldg" ;
+  sbco:hasPart <https://www.sbco.or.jp/ont/resource/level%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F3F> ;
+  sbco:hasPart <https://www.sbco.or.jp/ont/resource/level%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F4F> .
+
+<https://www.sbco.or.jp/ont/resource/level%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F3F> a sbco:Level ;
+  sbco:id "level:building:site:TokyoSite1/MainBldg/3F" ;
+  sbco:name "3F" ;
+  sbco:elevation "9.0"^^xsd:float ;
+  sbco:hasPart <https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F3F%2FRoom101> ;
+  sbco:hasPart <https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F3F%2FRoom102> ;
+  sbco:hasPart <https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F3F%2FRoom103> ;
+  sbco:hasPart <https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F3F%2FRoom104> .
+
+<https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F3F%2FRoom101> a sbco:Room ;
+  sbco:id "room:level:building:site:TokyoSite1/MainBldg/3F/Room101" ;
+  sbco:name "Room101" .
+
+<https://www.sbco.or.jp/ont/resource/DEV001> a sbco:EquipmentExt ;
+  sbco:id "DEV001" ;
+  sbco:name "Temperature Sensor 01" ;
+  sbco:locatedIn <https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F3F%2FRoom101> ;
+  sbco:hasPoint <https://www.sbco.or.jp/ont/resource/PT001> ;
+  sbco:hasPoint <https://www.sbco.or.jp/ont/resource/PT002> .
+
+<https://www.sbco.or.jp/ont/resource/PT001> a sbco:PointExt ;
+  sbco:pointType "Temperature" ;
+  sbco:id "PT001" ;
+  sbco:name "Room Temperature" ;
+  sbco:customProperties "{\"gatewayId\":\"GW001\",\"deviceType\":\"Sensor\",\"site\":\"TokyoSite1\",\"building\":\"MainBldg\",\"floor\":\"3F\",\"installationArea\":\"Room101\",\"targetArea\":\"Room101\",\"panel\":\"\",\"writable\":\"false\",\"interval\":\"60\",\"labels\":\"\",\"supplier\":\"VendorA\",\"owner\":\"Building Management\",\"description\":\"Room 101 temperature sensor\",\"localId\":\"LOCAL001\",\"deviceIdBacnet\":\"BAC001\",\"instanceNoBacnet\":\"1001\",\"objectTypeBacnet\":\"Analog-Input\"}" ;
+  sbco:customTags "[{\"key\":\"temperature\",\"flag\":true},{\"key\":\"room101\",\"flag\":true}]" ;
+  sbco:maxPresValue "50" ;
+  sbco:minPresValue "-10" ;
+  sbco:pointSpecification "Measurement" ;
+  sbco:scale "1.0" ;
+  sbco:unit "℃" ;
+  sbco:gatewayId "GW001" ;
+  sbco:deviceType "Sensor" ;
+  sbco:site "TokyoSite1" ;
+  sbco:building "MainBldg" ;
+  sbco:floor "3F" ;
+  sbco:installationArea "Room101" ;
+  sbco:targetArea "Room101" ;
+  sbco:writable "false" ;
+  sbco:interval "60" ;
+  sbco:tags "temperature&&room101" ;
+  sbco:supplier "VendorA" ;
+  sbco:owner "Building Management" ;
+  sbco:description "Room 101 temperature sensor" ;
+  sbco:localId "LOCAL001" ;
+  sbco:deviceIdBacnet "BAC001" ;
+  sbco:instanceNoBacnet "1001" ;
+  sbco:objectTypeBacnet "Analog-Input" .
+
+<https://www.sbco.or.jp/ont/resource/PT002> a sbco:PointExt ;
+  sbco:pointType "Temperature" ;
+  sbco:id "PT002" ;
+  sbco:name "Wall Temperature" ;
+  sbco:customProperties "{\"gatewayId\":\"GW001\",\"deviceType\":\"Sensor\",\"site\":\"TokyoSite1\",\"building\":\"MainBldg\",\"floor\":\"3F\",\"installationArea\":\"Room101\",\"targetArea\":\"Room101\",\"panel\":\"\",\"writable\":\"false\",\"interval\":\"60\",\"labels\":\"\",\"supplier\":\"VendorA\",\"owner\":\"Building Management\",\"description\":\"Wall mounted temperature sensor in Room 101\",\"localId\":\"LOCAL002\",\"deviceIdBacnet\":\"BAC001\",\"instanceNoBacnet\":\"1002\",\"objectTypeBacnet\":\"Analog-Input\"}" ;
+  sbco:customTags "[{\"key\":\"temperature\",\"flag\":true},{\"key\":\"room101\",\"flag\":true}]" ;
+  sbco:maxPresValue "50" ;
+  sbco:minPresValue "-10" ;
+  sbco:pointSpecification "Measurement" ;
+  sbco:scale "1.0" ;
+  sbco:unit "℃" ;
+  sbco:gatewayId "GW001" ;
+  sbco:deviceType "Sensor" ;
+  sbco:site "TokyoSite1" ;
+  sbco:building "MainBldg" ;
+  sbco:floor "3F" ;
+  sbco:installationArea "Room101" ;
+  sbco:targetArea "Room101" ;
+  sbco:writable "false" ;
+  sbco:interval "60" ;
+  sbco:tags "temperature&&room101" ;
+  sbco:supplier "VendorA" ;
+  sbco:owner "Building Management" ;
+  sbco:description "Wall mounted temperature sensor in Room 101" ;
+  sbco:localId "LOCAL002" ;
+  sbco:deviceIdBacnet "BAC001" ;
+  sbco:instanceNoBacnet "1002" ;
+  sbco:objectTypeBacnet "Analog-Input" .
+
+<https://www.sbco.or.jp/ont/resource/DEV002> a sbco:EquipmentExt ;
+  sbco:id "DEV002" ;
+  sbco:name "Humidity Sensor 01" ;
+  sbco:locatedIn <https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F3F%2FRoom101> ;
+  sbco:hasPoint <https://www.sbco.or.jp/ont/resource/PT003> .
+
+<https://www.sbco.or.jp/ont/resource/PT003> a sbco:PointExt ;
+  sbco:pointType "Humidity" ;
+  sbco:id "PT003" ;
+  sbco:name "Room Humidity" ;
+  sbco:customProperties "{\"gatewayId\":\"GW001\",\"deviceType\":\"Sensor\",\"site\":\"TokyoSite1\",\"building\":\"MainBldg\",\"floor\":\"3F\",\"installationArea\":\"Room101\",\"targetArea\":\"Room101\",\"panel\":\"\",\"writable\":\"false\",\"interval\":\"60\",\"labels\":\"\",\"supplier\":\"VendorB\",\"owner\":\"Building Management\",\"description\":\"Room 101 humidity sensor\",\"localId\":\"LOCAL003\",\"deviceIdBacnet\":\"BAC002\",\"instanceNoBacnet\":\"2001\",\"objectTypeBacnet\":\"Analog-Input\"}" ;
+  sbco:customTags "[{\"key\":\"humidity\",\"flag\":true},{\"key\":\"room101\",\"flag\":true}]" ;
+  sbco:maxPresValue "100" ;
+  sbco:minPresValue "0" ;
+  sbco:pointSpecification "Measurement" ;
+  sbco:scale "1.0" ;
+  sbco:unit "%" ;
+  sbco:gatewayId "GW001" ;
+  sbco:deviceType "Sensor" ;
+  sbco:site "TokyoSite1" ;
+  sbco:building "MainBldg" ;
+  sbco:floor "3F" ;
+  sbco:installationArea "Room101" ;
+  sbco:targetArea "Room101" ;
+  sbco:writable "false" ;
+  sbco:interval "60" ;
+  sbco:tags "humidity&&room101" ;
+  sbco:supplier "VendorB" ;
+  sbco:owner "Building Management" ;
+  sbco:description "Room 101 humidity sensor" ;
+  sbco:localId "LOCAL003" ;
+  sbco:deviceIdBacnet "BAC002" ;
+  sbco:instanceNoBacnet "2001" ;
+  sbco:objectTypeBacnet "Analog-Input" .
+
+<https://www.sbco.or.jp/ont/resource/DEV003> a sbco:EquipmentExt ;
+  sbco:id "DEV003" ;
+  sbco:name "CO2 Sensor 01" ;
+  sbco:locatedIn <https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F3F%2FRoom101> ;
+  sbco:hasPoint <https://www.sbco.or.jp/ont/resource/PT004> .
+
+<https://www.sbco.or.jp/ont/resource/PT004> a sbco:PointExt ;
+  sbco:pointType "CO2 Concentration" ;
+  sbco:id "PT004" ;
+  sbco:name "CO2 Level" ;
+  sbco:customProperties "{\"gatewayId\":\"GW001\",\"deviceType\":\"Sensor\",\"site\":\"TokyoSite1\",\"building\":\"MainBldg\",\"floor\":\"3F\",\"installationArea\":\"Room101\",\"targetArea\":\"Room101\",\"panel\":\"\",\"writable\":\"false\",\"interval\":\"120\",\"labels\":\"\",\"supplier\":\"VendorC\",\"owner\":\"Building Management\",\"description\":\"CO2 concentration sensor in Room 101\",\"localId\":\"LOCAL004\",\"deviceIdBacnet\":\"BAC003\",\"instanceNoBacnet\":\"3001\",\"objectTypeBacnet\":\"Analog-Input\"}" ;
+  sbco:customTags "[{\"key\":\"co2\",\"flag\":true},{\"key\":\"room101\",\"flag\":true}]" ;
+  sbco:maxPresValue "2000" ;
+  sbco:minPresValue "400" ;
+  sbco:pointSpecification "Measurement" ;
+  sbco:scale "1.0" ;
+  sbco:unit "ppm" ;
+  sbco:gatewayId "GW001" ;
+  sbco:deviceType "Sensor" ;
+  sbco:site "TokyoSite1" ;
+  sbco:building "MainBldg" ;
+  sbco:floor "3F" ;
+  sbco:installationArea "Room101" ;
+  sbco:targetArea "Room101" ;
+  sbco:writable "false" ;
+  sbco:interval "120" ;
+  sbco:tags "co2&&room101" ;
+  sbco:supplier "VendorC" ;
+  sbco:owner "Building Management" ;
+  sbco:description "CO2 concentration sensor in Room 101" ;
+  sbco:localId "LOCAL004" ;
+  sbco:deviceIdBacnet "BAC003" ;
+  sbco:instanceNoBacnet "3001" ;
+  sbco:objectTypeBacnet "Analog-Input" .
+
+<https://www.sbco.or.jp/ont/resource/DEV004> a sbco:EquipmentExt ;
+  sbco:id "DEV004" ;
+  sbco:name "Illumination Sensor 01" ;
+  sbco:locatedIn <https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F3F%2FRoom101> ;
+  sbco:hasPoint <https://www.sbco.or.jp/ont/resource/PT005> .
+
+<https://www.sbco.or.jp/ont/resource/PT005> a sbco:PointExt ;
+  sbco:pointType "Illuminance" ;
+  sbco:id "PT005" ;
+  sbco:name "Light Level" ;
+  sbco:customProperties "{\"gatewayId\":\"GW002\",\"deviceType\":\"Sensor\",\"site\":\"TokyoSite1\",\"building\":\"MainBldg\",\"floor\":\"3F\",\"installationArea\":\"Room101\",\"targetArea\":\"Room101\",\"panel\":\"\",\"writable\":\"false\",\"interval\":\"30\",\"labels\":\"\",\"supplier\":\"VendorD\",\"owner\":\"Building Management\",\"description\":\"Illuminance sensor for Room 101\",\"localId\":\"LOCAL005\",\"deviceIdBacnet\":\"BAC004\",\"instanceNoBacnet\":\"4001\",\"objectTypeBacnet\":\"Analog-Input\"}" ;
+  sbco:customTags "[{\"key\":\"illuminance\",\"flag\":true},{\"key\":\"room101\",\"flag\":true}]" ;
+  sbco:maxPresValue "10000" ;
+  sbco:minPresValue "0" ;
+  sbco:pointSpecification "Measurement" ;
+  sbco:scale "1.0" ;
+  sbco:unit "lx" ;
+  sbco:gatewayId "GW002" ;
+  sbco:deviceType "Sensor" ;
+  sbco:site "TokyoSite1" ;
+  sbco:building "MainBldg" ;
+  sbco:floor "3F" ;
+  sbco:installationArea "Room101" ;
+  sbco:targetArea "Room101" ;
+  sbco:writable "false" ;
+  sbco:interval "30" ;
+  sbco:tags "illuminance&&room101" ;
+  sbco:supplier "VendorD" ;
+  sbco:owner "Building Management" ;
+  sbco:description "Illuminance sensor for Room 101" ;
+  sbco:localId "LOCAL005" ;
+  sbco:deviceIdBacnet "BAC004" ;
+  sbco:instanceNoBacnet "4001" ;
+  sbco:objectTypeBacnet "Analog-Input" .
+
+<https://www.sbco.or.jp/ont/resource/DEV005> a sbco:EquipmentExt ;
+  sbco:id "DEV005" ;
+  sbco:name "VAV Unit 01" ;
+  sbco:locatedIn <https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F3F%2FRoom101> ;
+  sbco:hasPoint <https://www.sbco.or.jp/ont/resource/PT006> ;
+  sbco:hasPoint <https://www.sbco.or.jp/ont/resource/PT007> .
+
+<https://www.sbco.or.jp/ont/resource/PT006> a sbco:PointExt ;
+  sbco:pointType "HVAC Control" ;
+  sbco:id "PT006" ;
+  sbco:name "VAV Damper" ;
+  sbco:customProperties "{\"gatewayId\":\"GW002\",\"deviceType\":\"VAV\",\"site\":\"TokyoSite1\",\"building\":\"MainBldg\",\"floor\":\"3F\",\"installationArea\":\"Room101\",\"targetArea\":\"Room101\",\"panel\":\"PAN01\",\"writable\":\"true\",\"interval\":\"0\",\"labels\":\"Open&&Closed\",\"supplier\":\"VendorE\",\"owner\":\"Building Management\",\"description\":\"VAV unit damper control\",\"localId\":\"LOCAL006\",\"deviceIdBacnet\":\"BAC005\",\"instanceNoBacnet\":\"5001\",\"objectTypeBacnet\":\"Binary-Output\"}" ;
+  sbco:customTags "[{\"key\":\"hvac\",\"flag\":true},{\"key\":\"room101\",\"flag\":true}]" ;
+  sbco:maxPresValue "100" ;
+  sbco:minPresValue "0" ;
+  sbco:pointSpecification "Command" ;
+  sbco:scale "1.0" ;
+  sbco:unit "unit" ;
+  sbco:gatewayId "GW002" ;
+  sbco:deviceType "VAV" ;
+  sbco:site "TokyoSite1" ;
+  sbco:building "MainBldg" ;
+  sbco:floor "3F" ;
+  sbco:installationArea "Room101" ;
+  sbco:targetArea "Room101" ;
+  sbco:panel "PAN01" ;
+  sbco:writable "true" ;
+  sbco:interval "0" ;
+  sbco:labels "Open&&Closed" ;
+  sbco:tags "hvac&&room101" ;
+  sbco:supplier "VendorE" ;
+  sbco:owner "Building Management" ;
+  sbco:description "VAV unit damper control" ;
+  sbco:localId "LOCAL006" ;
+  sbco:deviceIdBacnet "BAC005" ;
+  sbco:instanceNoBacnet "5001" ;
+  sbco:objectTypeBacnet "Binary-Output" .
+
+<https://www.sbco.or.jp/ont/resource/PT007> a sbco:PointExt ;
+  sbco:pointType "Flow Rate" ;
+  sbco:id "PT007" ;
+  sbco:name "Supply Air Flow" ;
+  sbco:customProperties "{\"gatewayId\":\"GW002\",\"deviceType\":\"VAV\",\"site\":\"TokyoSite1\",\"building\":\"MainBldg\",\"floor\":\"3F\",\"installationArea\":\"Room101\",\"targetArea\":\"Room101\",\"panel\":\"PAN01\",\"writable\":\"false\",\"interval\":\"60\",\"labels\":\"\",\"supplier\":\"VendorE\",\"owner\":\"Building Management\",\"description\":\"Supply air flow measurement from VAV\",\"localId\":\"LOCAL007\",\"deviceIdBacnet\":\"BAC005\",\"instanceNoBacnet\":\"5002\",\"objectTypeBacnet\":\"Analog-Input\"}" ;
+  sbco:customTags "[{\"key\":\"hvac\",\"flag\":true},{\"key\":\"room101\",\"flag\":true}]" ;
+  sbco:maxPresValue "500" ;
+  sbco:minPresValue "0" ;
+  sbco:pointSpecification "Measurement" ;
+  sbco:scale "1.0" ;
+  sbco:unit "CFM" ;
+  sbco:gatewayId "GW002" ;
+  sbco:deviceType "VAV" ;
+  sbco:site "TokyoSite1" ;
+  sbco:building "MainBldg" ;
+  sbco:floor "3F" ;
+  sbco:installationArea "Room101" ;
+  sbco:targetArea "Room101" ;
+  sbco:panel "PAN01" ;
+  sbco:writable "false" ;
+  sbco:interval "60" ;
+  sbco:tags "hvac&&room101" ;
+  sbco:supplier "VendorE" ;
+  sbco:owner "Building Management" ;
+  sbco:description "Supply air flow measurement from VAV" ;
+  sbco:localId "LOCAL007" ;
+  sbco:deviceIdBacnet "BAC005" ;
+  sbco:instanceNoBacnet "5002" ;
+  sbco:objectTypeBacnet "Analog-Input" .
+
+<https://www.sbco.or.jp/ont/resource/level%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F4F> a sbco:Level ;
+  sbco:id "level:building:site:TokyoSite1/MainBldg/4F" ;
+  sbco:name "4F" ;
+  sbco:elevation "12.0"^^xsd:float ;
+  sbco:hasPart <https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F4F%2FRoom201> ;
+  sbco:hasPart <https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F4F%2FRoom202> ;
+  sbco:hasPart <https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F4F%2FRoom203> .
+
+<https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F3F%2FRoom102> a sbco:Room ;
+  sbco:id "room:level:building:site:TokyoSite1/MainBldg/3F/Room102" ;
+  sbco:name "Room102" .
+
+<https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F3F%2FRoom103> a sbco:Room ;
+  sbco:id "room:level:building:site:TokyoSite1/MainBldg/3F/Room103" ;
+  sbco:name "Room103" .
+
+<https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F3F%2FRoom104> a sbco:Room ;
+  sbco:id "room:level:building:site:TokyoSite1/MainBldg/3F/Room104" ;
+  sbco:name "Room104" .
+
+<https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F4F%2FRoom201> a sbco:Room ;
+  sbco:id "room:level:building:site:TokyoSite1/MainBldg/4F/Room201" ;
+  sbco:name "Room201" .
+
+<https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F4F%2FRoom202> a sbco:Room ;
+  sbco:id "room:level:building:site:TokyoSite1/MainBldg/4F/Room202" ;
+  sbco:name "Room202" .
+
+<https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F4F%2FRoom203> a sbco:Room ;
+  sbco:id "room:level:building:site:TokyoSite1/MainBldg/4F/Room203" ;
+  sbco:name "Room203" .
+
+<https://www.sbco.or.jp/ont/resource/DEV006> a sbco:EquipmentExt ;
+  sbco:id "DEV006" ;
+  sbco:name "Temperature Sensor 02" ;
+  sbco:locatedIn <https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F4F%2FRoom201> ;
+  sbco:hasPoint <https://www.sbco.or.jp/ont/resource/PT008> .
+
+<https://www.sbco.or.jp/ont/resource/PT008> a sbco:PointExt ;
+  sbco:pointType "Temperature" ;
+  sbco:id "PT008" ;
+  sbco:name "Room Temperature" ;
+  sbco:customProperties "{\"gatewayId\":\"GW003\",\"deviceType\":\"Sensor\",\"site\":\"TokyoSite1\",\"building\":\"MainBldg\",\"floor\":\"4F\",\"installationArea\":\"Room201\",\"targetArea\":\"Room201\",\"panel\":\"\",\"writable\":\"false\",\"interval\":\"60\",\"labels\":\"\",\"supplier\":\"VendorA\",\"owner\":\"Building Management\",\"description\":\"Room 201 temperature sensor\",\"localId\":\"LOCAL008\",\"deviceIdBacnet\":\"BAC006\",\"instanceNoBacnet\":\"1003\",\"objectTypeBacnet\":\"Analog-Input\"}" ;
+  sbco:customTags "[{\"key\":\"temperature\",\"flag\":true},{\"key\":\"room201\",\"flag\":true}]" ;
+  sbco:maxPresValue "50" ;
+  sbco:minPresValue "-10" ;
+  sbco:pointSpecification "Measurement" ;
+  sbco:scale "1.0" ;
+  sbco:unit "℃" ;
+  sbco:gatewayId "GW003" ;
+  sbco:deviceType "Sensor" ;
+  sbco:site "TokyoSite1" ;
+  sbco:building "MainBldg" ;
+  sbco:floor "4F" ;
+  sbco:installationArea "Room201" ;
+  sbco:targetArea "Room201" ;
+  sbco:writable "false" ;
+  sbco:interval "60" ;
+  sbco:tags "temperature&&room201" ;
+  sbco:supplier "VendorA" ;
+  sbco:owner "Building Management" ;
+  sbco:description "Room 201 temperature sensor" ;
+  sbco:localId "LOCAL008" ;
+  sbco:deviceIdBacnet "BAC006" ;
+  sbco:instanceNoBacnet "1003" ;
+  sbco:objectTypeBacnet "Analog-Input" .
+
+<https://www.sbco.or.jp/ont/resource/DEV007> a sbco:EquipmentExt ;
+  sbco:id "DEV007" ;
+  sbco:name "Motion Sensor 01" ;
+  sbco:locatedIn <https://www.sbco.or.jp/ont/resource/room%3Alevel%3Abuilding%3Asite%3ATokyoSite1%2FMainBldg%2F4F%2FRoom201> ;
+  sbco:hasPoint <https://www.sbco.or.jp/ont/resource/PT009> .
+
+<https://www.sbco.or.jp/ont/resource/PT009> a sbco:PointExt ;
+  sbco:pointType "Motion" ;
+  sbco:id "PT009" ;
+  sbco:name "Occupancy Status" ;
+  sbco:customProperties "{\"gatewayId\":\"GW003\",\"deviceType\":\"Sensor\",\"site\":\"TokyoSite1\",\"building\":\"MainBldg\",\"floor\":\"4F\",\"installationArea\":\"Room201\",\"targetArea\":\"Room201\",\"panel\":\"\",\"writable\":\"false\",\"interval\":\"10\",\"labels\":\"Present&&Absent\",\"supplier\":\"VendorF\",\"owner\":\"Building Management\",\"description\":\"Motion detector for Room 201\",\"localId\":\"LOCAL009\",\"deviceIdBacnet\":\"BAC007\",\"instanceNoBacnet\":\"6001\",\"objectTypeBacnet\":\"Binary-Input\"}" ;
+  sbco:customTags "[{\"key\":\"occupancy\",\"flag\":true},{\"key\":\"room201\",\"flag\":true}]" ;
+  sbco:maxPresValue "1" ;
+  sbco:minPresValue "0" ;
+  sbco:pointSpecification "Status" ;
+  sbco:scale "1.0" ;
+  sbco:unit "unit" ;
+  sbco:gatewayId "GW003" ;
+  sbco:deviceType "Sensor" ;
+  sbco:site "TokyoSite1" ;
+  sbco:building "MainBldg" ;
+  sbco:floor "4F" ;
+  sbco:installationArea "Room201" ;
+  sbco:targetArea "Room201" ;
+  sbco:writable "false" ;
+  sbco:interval "10" ;
+  sbco:labels "Present&&Absent" ;
+  sbco:tags "occupancy&&room201" ;
+  sbco:supplier "VendorF" ;
+  sbco:owner "Building Management" ;
+  sbco:description "Motion detector for Room 201" ;
+  sbco:localId "LOCAL009" ;
+  sbco:deviceIdBacnet "BAC007" ;
+  sbco:instanceNoBacnet "6001" ;
+  sbco:objectTypeBacnet "Binary-Input" .

@@ -61,6 +61,12 @@ EQUIPMENT_CLASSES: tuple[URIRef, ...] = (
     SBCO.EquipmentExt,
 )
 
+# Point concepts (Phase 3 pass-through)
+POINT_CLASSES: tuple[URIRef, ...] = (
+    SBCO.Point,
+    SBCO.PointExt,
+)
+
 # --------------------------------------------------------------------------- #
 # Object Properties
 # --------------------------------------------------------------------------- #
@@ -98,6 +104,11 @@ IS_PART_OF_STOREY: tuple[URIRef, ...] = (
 # Equipment → Space placement relation
 LOCATED_IN: tuple[URIRef, ...] = (
     SBCO.locatedIn,
+)
+
+# Equipment → Point relation
+HAS_POINT: tuple[URIRef, ...] = (
+    SBCO.hasPoint,
 )
 
 # Building → Storey containment
@@ -168,4 +179,17 @@ PROP_DEVICE_TYPE: tuple[URIRef, ...] = (
 
 PROP_MAINTENANCE_INTERVAL: tuple[URIRef, ...] = (
     SBCO.maintenanceInterval,
+)
+
+# Point data properties
+PROP_POINT_TYPE: tuple[URIRef, ...] = (
+    SBCO.pointType,
+)
+
+PROP_UNIT: tuple[URIRef, ...] = (
+    SBCO.unit,
+)
+
+PROP_HAS_QUANTITY: tuple[URIRef, ...] = (
+    SBCO.hasQuantity,
 )

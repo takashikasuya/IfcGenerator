@@ -209,6 +209,36 @@ class TestSBCOEquipmentLoader:
         assert by_name["VAV-01"].maintenance_interval == "P12M"
 
 
+class TestSBCOPointLoader:
+    """Tests for extracting sbco:Point entities linked from equipment."""
+
+    def test_extract_point_count(self):
+        loader = RDFLoader(FIXTURES / "sbco_equipment.ttl")
+        g = loader.load()
+        points = loader.extract_points(g)
+        assert len(points) == 2
+
+    def test_extract_point_parent_equipment_links(self):
+        loader = RDFLoader(FIXTURES / "sbco_equipment.ttl")
+        g = loader.load()
+        points = loader.extract_points(g)
+        by_name = {p.name: p for p in points}
+
+        assert by_name["Temp-01"].equipment_id == "urn:sbco:eq:ahu-01"
+        assert by_name["Cmd-01"].equipment_id == "urn:sbco:eq:vav-01"
+
+    def test_extract_point_metadata(self):
+        loader = RDFLoader(FIXTURES / "sbco_equipment.ttl")
+        g = loader.load()
+        points = loader.extract_points(g)
+        by_name = {p.name: p for p in points}
+
+        assert by_name["Temp-01"].point_type == "temperature"
+        assert by_name["Temp-01"].unit == "degC"
+        assert by_name["Temp-01"].has_quantity == "Temperature"
+        assert by_name["Cmd-01"].point_class == "PointExt"
+
+
 class TestSingleStoreyMode:
     def test_keeps_only_lowest_storey_spaces(self):
         loader = RDFLoader(FIXTURES / "two_storey.ttl")

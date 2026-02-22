@@ -121,10 +121,11 @@ def main(
     adjacencies = loader.extract_adjacencies(g)
     connections = loader.extract_connections(g)
     equipment = loader.extract_equipment(g)
+    points = loader.extract_points(g)
     spaces, adjacencies, connections = _apply_single_storey_mode(
         spaces, adjacencies, connections
     )
-    logger.info("Loaded %d spaces, %d adjacencies, %d connections, %d equipment", len(spaces), len(adjacencies), len(connections), len(equipment))
+    logger.info("Loaded %d spaces, %d adjacencies, %d connections, %d equipment, %d points", len(spaces), len(adjacencies), len(connections), len(equipment), len(points))
 
     # ---- Build topology graph ----------------------------------------- #
     topo = TopologyGraph.from_parts(spaces, adjacencies, connections)
@@ -192,7 +193,7 @@ def main(
 
     # ---- IFC export --------------------------------------------------- #
     exporter = IfcExporter(cfg)
-    exporter.export(spaces, rects, walls, slabs, doors, output_path, equipment=equipment)
+    exporter.export(spaces, rects, walls, slabs, doors, output_path, equipment=equipment, points=points)
     logger.info("Done. IFC written to %s", output_path)
 
 

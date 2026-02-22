@@ -18,10 +18,24 @@
     sbco:name "AHU-01" ;
     sbco:locatedIn <urn:sbco:space:office> ;
     sbco:deviceType "AHU" ;
-    sbco:maintenanceInterval "P6M" .
+    sbco:maintenanceInterval "P6M" ;
+    sbco:hasPoint <urn:sbco:point:temp-01> .
 
 <urn:sbco:eq:vav-01> a sbco:EquipmentExt ;
     sbco:name "VAV-01" ;
     sbco:locatedIn <urn:sbco:space:meeting> ;
     sbco:deviceType "VAV" ;
-    sbco:maintenanceInterval "P12M" .
+    sbco:maintenanceInterval "P12M" ;
+    sbco:hasPoint <urn:sbco:point:cmd-01> .
+
+<urn:sbco:point:temp-01> a sbco:Point ;
+    sbco:name "Temp-01" ;
+    sbco:pointType "temperature" ;
+    sbco:unit "degC" ;
+    sbco:hasQuantity "Temperature" .
+
+<urn:sbco:point:cmd-01> a sbco:PointExt ;
+    sbco:name "Cmd-01" ;
+    sbco:pointType "command" ;
+    sbco:unit "percent" ;
+    sbco:hasQuantity "ValvePosition" .

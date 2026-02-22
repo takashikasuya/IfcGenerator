@@ -18,6 +18,7 @@ from topo2ifc.topology.model import (
     AdjacencyEdge,
     ConnectionEdge,
     EquipmentSpec,
+    PointSpec,
     SpaceSpec,
     StoreySpec,
 )
@@ -236,6 +237,46 @@ class RDFLoader:
                 )
 
         return equipment_list
+
+    def extract_points(self, g: Optional[Graph] = None) -> list[PointSpec]:
+        """Return a :class:`PointSpec` for every SBCO point node."""
+        g = g or self._graph
+        if g is None:
+            raise RuntimeError("Call load() before extract_points()")
+
+        points: list[PointSpec] = []
+        seen: set[str] = set()
+
+        equipment_ids = {str(s) for cls in V.EQUIPMENT_CLASSES for s in g.subjects(RDF_NS.type, cls)}
+
+        point_to_equipment: dict[str, str] = {}
+        for pred in V.HAS_POINT:
+            for subj, obj in g.subject_objects(pred):
+                sid, oid = str(subj), str(obj)
+                if sid in equipment_ids:
+                    point_to_equipment[oid] = sid
+
+        for point_class in V.POINT_CLASSES:
+            for subject in g.subjects(RDF_NS.type, point_class):
+                pid = str(subject)
+                if pid in seen:
+                    continue
+                seen.add(pid)
+
+                name = _first_literal(g, subject, V.PROP_NAME)
+                points.append(
+                    PointSpec(
+                        point_id=pid,
+                        name=name or pid.split("#")[-1].split("/")[-1],
+                        equipment_id=point_to_equipment.get(pid),
+                        point_class=str(point_class).split("#")[-1].split("/")[-1],
+                        point_type=_first_literal(g, subject, V.PROP_POINT_TYPE),
+                        unit=_first_literal(g, subject, V.PROP_UNIT),
+                        has_quantity=_first_literal(g, subject, V.PROP_HAS_QUANTITY),
+                    )
+                )
+
+        return points
 
     def extract_adjacencies(
         self,

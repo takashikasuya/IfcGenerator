@@ -105,9 +105,9 @@ AI agents must read this file before starting work and mark each task `[x]` when
 - [x] Write `psets.py` property sets for device type and maintenance interval.
 
 ### 3-3 Extract and export points
-- [ ] Parse `sbco:Point` / `sbco:PointExt` nodes linked via `sbco:hasPoint`.
-- [ ] Represent each point as an `IfcSensor` (or `IfcActuator`) assigned to the parent equipment element.
-- [ ] Add property sets for `pointType`, `unit`, `hasQuantity`.
+- [x] Parse `sbco:Point` / `sbco:PointExt` nodes linked via `sbco:hasPoint`.
+- [x] Represent each point as an `IfcSensor` (or `IfcActuator`) assigned to the parent equipment element.
+- [x] Add property sets for `pointType`, `unit`, `hasQuantity`.
 
 ---
 

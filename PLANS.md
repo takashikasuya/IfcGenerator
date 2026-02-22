@@ -23,6 +23,12 @@ AI agents must read this file before starting work and mark each task `[x]` when
 - [x] Add regression test ensuring many disconnected spaces are not all placed in a single row.
 - [x] Validate sample IFC generation now produces a more compact floor layout.
 
+### H-4 Temporary single-storey mode and layout refinement
+- [x] In CLI pipeline, omit spaces above the lowest detected storey elevation (temporary single-storey behavior).
+- [x] Normalize retained storey elevation to 0.0m so exported IFC is handled as a single-storey building.
+- [x] Refine heuristic placement for sparse/disconnected topology using compact grid placement.
+- [x] Add tests for single-storey filtering and sparse-layout compactness behavior.
+
 ---
 
 ## Phase 1 – SBCO Vocabulary Support

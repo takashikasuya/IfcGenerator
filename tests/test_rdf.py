@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from topo2ifc.cli import _apply_single_storey_mode
 from topo2ifc.rdf.loader import RDFLoader
 from topo2ifc.topology.model import SpaceCategory
 
@@ -195,3 +196,19 @@ class TestSBCOEquipmentLoader:
         kinds = {e.equipment_class for e in equipment}
         assert "Equipment" in kinds
         assert "EquipmentExt" in kinds
+
+
+class TestSingleStoreyMode:
+    def test_keeps_only_lowest_storey_spaces(self):
+        loader = RDFLoader(FIXTURES / "two_storey.ttl")
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+        adj = loader.extract_adjacencies(g)
+        conn = loader.extract_connections(g)
+
+        kept_spaces, kept_adj, kept_conn = _apply_single_storey_mode(spaces, adj, conn)
+
+        assert len(kept_spaces) == 3
+        assert all((s.storey_elevation or 0.0) == pytest.approx(0.0) for s in kept_spaces)
+        assert all(e.space_a in {s.space_id for s in kept_spaces} and e.space_b in {s.space_id for s in kept_spaces} for e in kept_adj)
+        assert all(e.space_a in {s.space_id for s in kept_spaces} and e.space_b in {s.space_id for s in kept_spaces} for e in kept_conn)

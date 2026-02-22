@@ -39,7 +39,11 @@ class HeuristicSolver(LayoutSolverBase):
             return []
 
         order = self._bfs_order(topo)
-        rects = self._initial_placement(topo, order)
+        sparse_topology = not topo.adjacent_pairs() and not topo.connected_pairs()
+        if sparse_topology:
+            rects = self._compact_grid_placement(topo, order)
+        else:
+            rects = self._initial_placement(topo, order)
         rects = self._hill_climb(topo, rects)
         return rects
 
@@ -111,6 +115,47 @@ class HeuristicSolver(LayoutSolverBase):
             row_height = max(row_height, h)
 
         return list(rects.values())
+
+    def _compact_grid_placement(
+        self, topo: TopologyGraph, order: list[str]
+    ) -> list[LayoutRect]:
+        """Place sparse/disconnected spaces in a compact near-square grid."""
+        if not order:
+            return []
+
+        grid = self.config.grid_unit
+        dims: dict[str, tuple[float, float]] = {}
+        for sid in order:
+            area = topo.get_space(sid).effective_area_target
+            w, h = self._initial_dims(area)
+            w = max(grid, round(w / grid) * grid)
+            h = max(grid, round(h / grid) * grid)
+            dims[sid] = (w, h)
+
+        n_cols = max(1, math.ceil(math.sqrt(len(order))))
+        rows = [order[i:i + n_cols] for i in range(0, len(order), n_cols)]
+        row_widths = [sum(dims[sid][0] for sid in row) for row in rows]
+        row_heights = [max(dims[sid][1] for sid in row) for row in rows]
+        max_row_w = max(row_widths) if row_widths else 0.0
+
+        rects: list[LayoutRect] = []
+        y_cursor = 0.0
+        for row, row_w, row_h in zip(rows, row_widths, row_heights):
+            x_cursor = (max_row_w - row_w) / 2.0
+            for sid in row:
+                w, h = dims[sid]
+                rects.append(
+                    LayoutRect(
+                        space_id=sid,
+                        x=round(x_cursor, 4),
+                        y=round(y_cursor, 4),
+                        width=w,
+                        height=h,
+                    )
+                )
+                x_cursor += w
+            y_cursor += row_h
+        return rects
 
     # ------------------------------------------------------------------ #
     # Step 3 – Hill climbing: swap positions to improve adjacency score

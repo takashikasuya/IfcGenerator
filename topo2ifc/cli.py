@@ -9,6 +9,7 @@ Usage
 
 from __future__ import annotations
 
+from dataclasses import replace
 import logging
 import sys
 from pathlib import Path
@@ -29,6 +30,7 @@ from topo2ifc.layout.postprocess import (
 )
 from topo2ifc.rdf.loader import RDFLoader
 from topo2ifc.topology.graph import TopologyGraph
+from topo2ifc.topology.model import AdjacencyEdge, ConnectionEdge, SpaceSpec
 from topo2ifc.validate.checks import validate_layout, validate_topology
 from topo2ifc.validate.reports import (
     build_constraints_report,
@@ -42,6 +44,41 @@ logging.basicConfig(
     stream=sys.stderr,
 )
 logger = logging.getLogger("topo2ifc.cli")
+
+
+def _apply_single_storey_mode(
+    spaces: list[SpaceSpec],
+    adjacencies: list[AdjacencyEdge],
+    connections: list[ConnectionEdge],
+    tol: float = 0.01,
+) -> tuple[list[SpaceSpec], list[AdjacencyEdge], list[ConnectionEdge]]:
+    """Temporarily keep only the lowest storey and normalize it to 0.0m.
+
+    This is a transitional behavior while multi-storey layout stacking is
+    being refined.
+    """
+    elevations = [s.storey_elevation for s in spaces if s.storey_elevation is not None]
+    if not elevations:
+        return spaces, adjacencies, connections
+
+    base = min(elevations)
+    kept_spaces: list[SpaceSpec] = []
+    kept_ids: set[str] = set()
+    for sp in spaces:
+        elev = sp.storey_elevation
+        if elev is None or abs(elev - base) <= tol:
+            kept_spaces.append(replace(sp, storey_elevation=0.0, storey_id=None))
+            kept_ids.add(sp.space_id)
+
+    kept_adj = [
+        e for e in adjacencies
+        if e.space_a in kept_ids and e.space_b in kept_ids
+    ]
+    kept_conn = [
+        e for e in connections
+        if e.space_a in kept_ids and e.space_b in kept_ids
+    ]
+    return kept_spaces, kept_adj, kept_conn
 
 
 @click.command()
@@ -83,6 +120,9 @@ def main(
     spaces = loader.extract_spaces(g)
     adjacencies = loader.extract_adjacencies(g)
     connections = loader.extract_connections(g)
+    spaces, adjacencies, connections = _apply_single_storey_mode(
+        spaces, adjacencies, connections
+    )
     logger.info("Loaded %d spaces, %d adjacencies, %d connections", len(spaces), len(adjacencies), len(connections))
 
     # ---- Build topology graph ----------------------------------------- #

@@ -64,3 +64,41 @@ class TestRDFLoader:
         g = loader.load()
         with pytest.raises(ValueError, match="No Space nodes"):
             loader.extract_spaces(g)
+
+
+class TestSBCORDFLoader:
+    """Tests for SBCO-vocabulary input (https://github.com/takashikasuya/smartbuiding_ontology)."""
+
+    def test_load_sbco_fixture(self):
+        loader = RDFLoader(FIXTURES / "sbco_minimal.ttl")
+        g = loader.load()
+        assert len(g) > 0
+
+    def test_extract_spaces_sbco(self):
+        loader = RDFLoader(FIXTURES / "sbco_minimal.ttl")
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+        assert len(spaces) == 3
+
+    def test_sbco_space_names(self):
+        loader = RDFLoader(FIXTURES / "sbco_minimal.ttl")
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+        names = {s.name for s in spaces}
+        assert "Office Area" in names
+        assert "Meeting Room" in names
+        assert "Corridor" in names
+
+    def test_sbco_space_area(self):
+        loader = RDFLoader(FIXTURES / "sbco_minimal.ttl")
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+        by_name = {s.name: s for s in spaces}
+        assert by_name["Office Area"].area_target == pytest.approx(30.0)
+        assert by_name["Meeting Room"].area_min == pytest.approx(12.0)
+
+    def test_sbco_adjacencies(self):
+        loader = RDFLoader(FIXTURES / "sbco_minimal.ttl")
+        g = loader.load()
+        adjacencies = loader.extract_adjacencies(g)
+        assert len(adjacencies) == 2

@@ -5,6 +5,7 @@ AdjacencyEdge  – boundary-sharing relationship
 ConnectionEdge – traversal (door) relationship
 LayoutRect  – 2-D rectangular placement produced by the Layout Solver
 StoreySpec  – attributes of a building storey / level
+EquipmentSpec – attributes of equipment linked to a containing space
 """
 
 from __future__ import annotations
@@ -87,6 +88,16 @@ class SpaceSpec:
     @property
     def effective_area_target(self) -> float:
         return self.area_target or 20.0
+
+
+@dataclass
+class EquipmentSpec:
+    """Specification of an equipment node from the RDF graph."""
+
+    equipment_id: str
+    name: str = ""
+    space_id: Optional[str] = None
+    equipment_class: str = "Equipment"
 
 
 # --------------------------------------------------------------------------- #

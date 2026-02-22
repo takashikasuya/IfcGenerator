@@ -169,3 +169,29 @@ class TestMultiStoreyLoader:
         spaces_2f = [sp for sp in spaces if sp.storey_id == storey_2f.storey_id]
         assert len(spaces_2f) == 2
 
+
+class TestSBCOEquipmentLoader:
+    """Tests for extracting sbco:Equipment entities and locatedIn links."""
+
+    def test_extract_equipment_count(self):
+        loader = RDFLoader(FIXTURES / "sbco_equipment.ttl")
+        g = loader.load()
+        equipment = loader.extract_equipment(g)
+        assert len(equipment) == 2
+
+    def test_extract_equipment_space_links(self):
+        loader = RDFLoader(FIXTURES / "sbco_equipment.ttl")
+        g = loader.load()
+        equipment = loader.extract_equipment(g)
+        by_name = {e.name: e for e in equipment}
+
+        assert by_name["AHU-01"].space_id == "urn:sbco:space:office"
+        assert by_name["VAV-01"].space_id == "urn:sbco:space:meeting"
+
+    def test_extract_equipment_class_type(self):
+        loader = RDFLoader(FIXTURES / "sbco_equipment.ttl")
+        g = loader.load()
+        equipment = loader.extract_equipment(g)
+        kinds = {e.equipment_class for e in equipment}
+        assert "Equipment" in kinds
+        assert "EquipmentExt" in kinds

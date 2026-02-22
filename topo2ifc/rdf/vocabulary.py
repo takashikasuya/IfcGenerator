@@ -1,7 +1,18 @@
 """RDF predicate / class vocabulary for topo2ifc.
 
-Supports BOT (Building Topology Ontology), Brick and a custom topo2ifc
-namespace.  Any of these can be used in input Turtle files.
+Supports BOT (Building Topology Ontology), Brick, a custom topo2ifc namespace,
+and the Smart Building Co-creation Organization (SBCO) ontology
+(https://github.com/takashikasuya/smartbuiding_ontology).
+Any of these can be used in input Turtle files.
+
+SBCO hierarchy: Site → Building → Level → Space → Equipment → Point
+SBCO terms use the prefix: sbco: <https://www.sbco.or.jp/ont/>
+
+Note: sbco:Equipment and sbco:Point are out-of-scope for the current layout
+pipeline (they do not produce floor-plan spaces) and are therefore not included
+in SPACE_CLASSES.  Adjacency in SBCO is expressed through containment
+(sbco:hasPart / sbco:isPartOf); use BOT or Brick adjacency predicates when
+explicit space-to-space adjacency is required.
 """
 
 from rdflib import Namespace, URIRef
@@ -13,6 +24,7 @@ from rdflib import Namespace, URIRef
 TOPO = Namespace("https://topo2ifc.example.org/ont#")
 BOT = Namespace("https://w3id.org/bot#")
 BRICK = Namespace("https://brickschema.org/schema/Brick#")
+SBCO = Namespace("https://www.sbco.or.jp/ont/")
 SCHEMA = Namespace("http://schema.org/")
 RDF = Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
 RDFS = Namespace("http://www.w3.org/2000/01/rdf-schema#")
@@ -22,13 +34,15 @@ XSD = Namespace("http://www.w3.org/2001/XMLSchema#")
 # Classes
 # --------------------------------------------------------------------------- #
 
-# Space-like concepts
+# Space-like concepts (sbco:Equipment and sbco:Point are excluded – they do not
+# represent floor-plan areas and are out-of-scope for the layout pipeline).
 SPACE_CLASSES: tuple[URIRef, ...] = (
     TOPO.Space,
     BOT.Space,
     BRICK.Space,
     BRICK.Room,
     BRICK.Area,
+    SBCO.Space,
 )
 
 # --------------------------------------------------------------------------- #
@@ -57,6 +71,7 @@ PROP_NAME: tuple[URIRef, ...] = (
     TOPO.name,
     RDFS.label,
     SCHEMA.name,
+    SBCO.name,
 )
 
 PROP_CATEGORY: tuple[URIRef, ...] = (

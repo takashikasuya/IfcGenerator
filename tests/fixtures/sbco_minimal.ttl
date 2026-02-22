@@ -1,0 +1,36 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix sbco: <https://www.sbco.or.jp/ont/> .
+@prefix topo: <https://topo2ifc.example.org/ont#> .
+@prefix bot:  <https://w3id.org/bot#> .
+@prefix ex:   <https://example.com/> .
+
+# Level node (not a Space – used only for containment context)
+ex:level_A_3F a sbco:Level ;
+    sbco:name "3F" ;
+    sbco:levelNumber 3 ;
+    sbco:hasPart ex:space_office, ex:space_meeting, ex:space_corridor .
+
+# Three spaces on 3F using SBCO vocabulary for type/name, topo for constraints
+ex:space_office a sbco:Space ;
+    sbco:name "Office Area" ;
+    sbco:isPartOf ex:level_A_3F ;
+    topo:areaTarget "30.0"^^xsd:float ;
+    topo:areaMin "20.0"^^xsd:float .
+
+ex:space_meeting a sbco:Space ;
+    sbco:name "Meeting Room" ;
+    sbco:isPartOf ex:level_A_3F ;
+    topo:areaTarget "20.0"^^xsd:float ;
+    topo:areaMin "12.0"^^xsd:float .
+
+ex:space_corridor a sbco:Space ;
+    sbco:name "Corridor" ;
+    sbco:isPartOf ex:level_A_3F ;
+    topo:areaTarget "10.0"^^xsd:float ;
+    topo:areaMin "6.0"^^xsd:float .
+
+# Adjacency expressed with BOT predicates (SBCO uses containment, not adjacency)
+ex:space_office  bot:adjacentElement ex:space_corridor .
+ex:space_meeting bot:adjacentElement ex:space_corridor .

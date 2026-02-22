@@ -197,6 +197,17 @@ class TestSBCOEquipmentLoader:
         assert "Equipment" in kinds
         assert "EquipmentExt" in kinds
 
+    def test_extract_equipment_metadata(self):
+        loader = RDFLoader(FIXTURES / "sbco_equipment.ttl")
+        g = loader.load()
+        equipment = loader.extract_equipment(g)
+        by_name = {e.name: e for e in equipment}
+
+        assert by_name["AHU-01"].device_type == "AHU"
+        assert by_name["AHU-01"].maintenance_interval == "P6M"
+        assert by_name["VAV-01"].device_type == "VAV"
+        assert by_name["VAV-01"].maintenance_interval == "P12M"
+
 
 class TestSingleStoreyMode:
     def test_keeps_only_lowest_storey_spaces(self):

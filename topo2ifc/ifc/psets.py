@@ -35,3 +35,29 @@ def add_quantity_set(
     """Add a simple quantity set to an IFC element."""
     qset = ifcopenshell.api.run("pset.add_qto", ifc, product=element, name=name)
     ifcopenshell.api.run("pset.edit_qto", ifc, qto=qset, properties=quantities)
+
+
+def add_equipment_pset(
+    ifc: ifcopenshell.file,
+    equipment_entity,
+    equipment_class: str,
+    device_type: str | None = None,
+    maintenance_interval: str | None = None,
+) -> None:
+    """Add equipment-related property set metadata."""
+    pset = ifcopenshell.api.run(
+        "pset.add_pset",
+        ifc,
+        product=equipment_entity,
+        name="Pset_Topo2IfcEquipment",
+    )
+
+    props: dict = {
+        "EquipmentClass": equipment_class,
+    }
+    if device_type:
+        props["DeviceType"] = device_type
+    if maintenance_interval:
+        props["MaintenanceInterval"] = maintenance_interval
+
+    ifcopenshell.api.run("pset.edit_pset", ifc, pset=pset, properties=props)

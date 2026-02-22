@@ -31,8 +31,8 @@ from topo2ifc.geometry.doors import DoorSpec
 from topo2ifc.geometry.slabs import SlabSpec
 from topo2ifc.geometry.walls import WallSegment
 from topo2ifc.ifc.ifc_context import add_storey, create_ifc_model
-from topo2ifc.ifc.psets import add_space_pset
-from topo2ifc.topology.model import LayoutRect, SpaceSpec
+from topo2ifc.ifc.psets import add_equipment_pset, add_space_pset
+from topo2ifc.topology.model import EquipmentSpec, LayoutRect, SpaceSpec
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +61,7 @@ class IfcExporter:
         slabs: list[SlabSpec],
         doors: list[DoorSpec],
         output_path: str | Path,
+        equipment: Optional[list[EquipmentSpec]] = None,
     ) -> ifcopenshell.file:
         """Generate the IFC model and write it to *output_path*.
 
@@ -200,6 +201,28 @@ class IfcExporter:
                 ifc,
                 products=[ifc_door],
                 relating_structure=_get_storey_by_elevation(door.elevation),
+            )
+
+
+        # ---- Equipment ----------------------------------------------- #
+        for eq in equipment or []:
+            ifc_eq = self._create_equipment(eq, body_ctx, rect_by_id)
+            target_storey = default_storey
+            if eq.space_id and eq.space_id in ifc_spaces:
+                ifcopenshell.api.run(
+                    "spatial.reference_structure",
+                    ifc,
+                    products=[ifc_eq],
+                    relating_structure=ifc_spaces[eq.space_id],
+                )
+                spec = next((sp for sp in spaces if sp.space_id == eq.space_id), None)
+                if spec is not None:
+                    target_storey = _get_storey(spec)
+            ifcopenshell.api.run(
+                "spatial.assign_container",
+                ifc,
+                products=[ifc_eq],
+                relating_structure=target_storey,
             )
 
         ifc.write(str(output_path))
@@ -421,3 +444,40 @@ class IfcExporter:
                 ifc.createIfcDirection((cos_a, sin_a, 0.0)),
             ),
         )
+
+    # ------------------------------------------------------------------ #
+    # Equipment
+    # ------------------------------------------------------------------ #
+
+    def _create_equipment(self, eq: EquipmentSpec, body_ctx, rect_by_id: dict[str, LayoutRect]):
+        ifc = self.ifc
+        entity = ifcopenshell.api.run(
+            "root.create_entity",
+            ifc,
+            ifc_class="IfcBuildingElementProxy",
+            name=eq.name or eq.equipment_id,
+        )
+        entity.ObjectType = eq.equipment_class
+
+        placement_x, placement_y, placement_z = 0.0, 0.0, self.geo.storey_elevation
+        if eq.space_id and eq.space_id in rect_by_id:
+            rect = rect_by_id[eq.space_id]
+            placement_x, placement_y, placement_z = rect.cx, rect.cy, 0.0
+
+        shape = self._extruded_rect_shape(0.0, 0.0, 0.4, 0.4, 0.4, body_ctx)
+        ifcopenshell.api.run(
+            "geometry.assign_representation",
+            ifc,
+            product=entity,
+            representation=shape,
+        )
+        entity.ObjectPlacement = self._local_placement(placement_x, placement_y, placement_z)
+
+        add_equipment_pset(
+            ifc,
+            entity,
+            equipment_class=eq.equipment_class,
+            device_type=eq.device_type,
+            maintenance_interval=eq.maintenance_interval,
+        )
+        return entity

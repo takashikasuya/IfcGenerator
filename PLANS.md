@@ -101,8 +101,8 @@ AI agents must read this file before starting work and mark each task `[x]` when
 - [x] Store as a list of `EquipmentSpec` (new dataclass in `topo2ifc/topology/model.py`).
 
 ### 3-2 Export equipment as IFC elements
-- [ ] Map each `EquipmentSpec` to an `IfcBuildingElementProxy` (or appropriate IFC type) placed in its containing space.
-- [ ] Write `psets.py` property sets for device type and maintenance interval.
+- [x] Map each `EquipmentSpec` to an `IfcBuildingElementProxy` (or appropriate IFC type) placed in its containing space.
+- [x] Write `psets.py` property sets for device type and maintenance interval.
 
 ### 3-3 Extract and export points
 - [ ] Parse `sbco:Point` / `sbco:PointExt` nodes linked via `sbco:hasPoint`.

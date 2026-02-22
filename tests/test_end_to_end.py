@@ -631,3 +631,60 @@ class TestMultiStoreyEndToEnd:
         assert len(storey_names) == 1
         assert storey_names[0]
         assert "1f" in storey_names[0].lower() or storey_names[0] == "Ground Floor"
+
+
+class TestEquipmentExport:
+    def test_exports_equipment_as_proxy_with_psets(self, tmp_path):
+        """SBCO equipment should be exported as IfcBuildingElementProxy with metadata pset."""
+        import ifcopenshell
+
+        from topo2ifc.config import Config
+        from topo2ifc.geometry.doors import extract_doors
+        from topo2ifc.geometry.slabs import extract_slabs
+        from topo2ifc.geometry.walls import extract_walls
+        from topo2ifc.ifc.exporter import IfcExporter
+        from topo2ifc.layout.postprocess import snap_to_grid, to_shapely_polygons
+        from topo2ifc.layout.solver_heuristic import HeuristicSolver
+        from topo2ifc.rdf.loader import RDFLoader
+        from topo2ifc.topology.graph import TopologyGraph
+
+        loader = RDFLoader(FIXTURES / "sbco_equipment.ttl")
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+        equipment = loader.extract_equipment(g)
+        topo = TopologyGraph.from_parts(spaces, loader.extract_adjacencies(g), loader.extract_connections(g))
+        rects = snap_to_grid(HeuristicSolver().solve(topo))
+        polygons = to_shapely_polygons(rects)
+
+        out = tmp_path / "equipment.ifc"
+        IfcExporter(Config.default()).export(
+            spaces,
+            rects,
+            extract_walls(polygons),
+            extract_slabs(polygons),
+            extract_doors(polygons, topo.connected_pairs()),
+            out,
+            equipment=equipment,
+        )
+
+        ifc = ifcopenshell.open(str(out))
+        proxies = ifc.by_type("IfcBuildingElementProxy")
+        assert len(proxies) == 2
+
+        rel_psets = ifc.by_type("IfcRelDefinesByProperties")
+        psets_by_name = {}
+        for rel in rel_psets:
+            pdef = rel.RelatingPropertyDefinition
+            if not pdef or not pdef.is_a("IfcPropertySet"):
+                continue
+            psets_by_name.setdefault(pdef.Name, []).append((rel, pdef))
+
+        assert "Pset_Topo2IfcEquipment" in psets_by_name
+        all_props = []
+        for _, pdef in psets_by_name["Pset_Topo2IfcEquipment"]:
+            names = {prop.Name for prop in pdef.HasProperties}
+            all_props.append(names)
+
+        assert any("EquipmentClass" in names for names in all_props)
+        assert any("DeviceType" in names for names in all_props)
+        assert any("MaintenanceInterval" in names for names in all_props)

@@ -16,8 +16,12 @@
 
 <urn:sbco:eq:ahu-01> a sbco:Equipment ;
     sbco:name "AHU-01" ;
-    sbco:locatedIn <urn:sbco:space:office> .
+    sbco:locatedIn <urn:sbco:space:office> ;
+    sbco:deviceType "AHU" ;
+    sbco:maintenanceInterval "P6M" .
 
 <urn:sbco:eq:vav-01> a sbco:EquipmentExt ;
     sbco:name "VAV-01" ;
-    sbco:locatedIn <urn:sbco:space:meeting> .
+    sbco:locatedIn <urn:sbco:space:meeting> ;
+    sbco:deviceType "VAV" ;
+    sbco:maintenanceInterval "P12M" .

@@ -46,7 +46,18 @@ def create_ifc_model(
     project = ifcopenshell.api.run(
         "root.create_entity", ifc, ifc_class="IfcProject", name=project_name
     )
-    ifcopenshell.api.run("unit.assign_unit", ifc)
+    length_unit = ifcopenshell.api.run(
+        "unit.add_si_unit", ifc, unit_type="LENGTHUNIT"
+    )
+    area_unit = ifcopenshell.api.run(
+        "unit.add_si_unit", ifc, unit_type="AREAUNIT"
+    )
+    volume_unit = ifcopenshell.api.run(
+        "unit.add_si_unit", ifc, unit_type="VOLUMEUNIT"
+    )
+    ifcopenshell.api.run(
+        "unit.assign_unit", ifc, units=[length_unit, area_unit, volume_unit]
+    )
 
     # ------------------------------------------------------------------ #
     # Geometric context

@@ -5,6 +5,15 @@ AI agents must read this file before starting work and mark each task `[x]` when
 
 ---
 
+## Hotfix – IFC geometry visibility
+
+### H-1 Fix IFC project length unit (mm → m)
+- [x] Add a regression test ensuring exported IFC uses `IfcSIUnit` length in metres (no `MILLI` prefix).
+- [x] Update IFC context setup to assign metre-based project units explicitly.
+- [x] Validate that generated geometry remains visible in standard IFC viewers.
+
+---
+
 ## Phase 1 – SBCO Vocabulary Support
 
 ### 1-1 Add SBCO namespace and classes to `vocabulary.py`

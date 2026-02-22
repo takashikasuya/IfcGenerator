@@ -132,6 +132,43 @@ class TestEndToEnd:
         assert len(ifc2.by_type("IfcWall")) > 0
         assert len(ifc2.by_type("IfcSlab")) > 0
 
+    def test_ifc_uses_metre_length_unit(self, tmp_path, minimal_ttl):
+        """Generated IFC should use metres as the default length unit."""
+        import ifcopenshell
+
+        from topo2ifc.config import Config
+        from topo2ifc.geometry.doors import extract_doors
+        from topo2ifc.geometry.slabs import extract_slabs
+        from topo2ifc.geometry.walls import extract_walls
+        from topo2ifc.ifc.exporter import IfcExporter
+        from topo2ifc.layout.postprocess import snap_to_grid, to_shapely_polygons
+        from topo2ifc.layout.solver_heuristic import HeuristicSolver
+        from topo2ifc.rdf.loader import RDFLoader
+        from topo2ifc.topology.graph import TopologyGraph
+
+        loader = RDFLoader(minimal_ttl)
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+        topo = TopologyGraph.from_parts(spaces, loader.extract_adjacencies(g), loader.extract_connections(g))
+        rects = snap_to_grid(HeuristicSolver().solve(topo))
+        polygons = to_shapely_polygons(rects)
+
+        out = tmp_path / "units.ifc"
+        IfcExporter(Config.default()).export(
+            spaces,
+            rects,
+            extract_walls(polygons),
+            extract_slabs(polygons),
+            extract_doors(polygons, topo.connected_pairs()),
+            out,
+        )
+
+        ifc2 = ifcopenshell.open(str(out))
+        length_units = [u for u in ifc2.by_type("IfcSIUnit") if u.UnitType == "LENGTHUNIT"]
+        assert len(length_units) == 1
+        assert length_units[0].Name == "METRE"
+        assert length_units[0].Prefix is None
+
     def test_seed_reproducibility(self, tmp_path, minimal_ttl):
         """Same seed should produce same number of walls."""
         import ifcopenshell

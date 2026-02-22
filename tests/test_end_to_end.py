@@ -12,6 +12,11 @@ def minimal_ttl():
     return FIXTURES / "minimal.ttl"
 
 
+@pytest.fixture
+def sbco_ttl():
+    return FIXTURES / "sbco_minimal.ttl"
+
+
 class TestEndToEnd:
     def test_rdf_to_ifc(self, tmp_path, minimal_ttl):
         """Full pipeline: minimal.ttl → out.ifc."""
@@ -160,3 +165,167 @@ class TestEndToEnd:
             return len(ifc2.by_type("IfcWall"))
 
         assert run(42) == run(42)
+
+
+class TestEndToEndSBCO:
+    """End-to-end tests using SBCO-vocabulary input."""
+
+    def test_sbco_rdf_to_ifc(self, tmp_path, sbco_ttl):
+        """Full pipeline: sbco_minimal.ttl → out.ifc."""
+        import ifcopenshell
+
+        from topo2ifc.config import Config
+        from topo2ifc.geometry.doors import extract_doors
+        from topo2ifc.geometry.slabs import extract_slabs
+        from topo2ifc.geometry.walls import extract_walls
+        from topo2ifc.ifc.exporter import IfcExporter
+        from topo2ifc.layout.postprocess import snap_to_grid, to_shapely_polygons
+        from topo2ifc.layout.solver_heuristic import HeuristicSolver
+        from topo2ifc.rdf.loader import RDFLoader
+        from topo2ifc.topology.graph import TopologyGraph
+
+        loader = RDFLoader(sbco_ttl)
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+        adjacencies = loader.extract_adjacencies(g)
+        connections = loader.extract_connections(g)
+
+        assert len(spaces) == 3
+        assert len(adjacencies) == 2
+
+        topo = TopologyGraph.from_parts(spaces, adjacencies, connections)
+        rects = snap_to_grid(HeuristicSolver().solve(topo))
+        polygons = to_shapely_polygons(rects)
+        walls = extract_walls(polygons)
+        slabs = extract_slabs(polygons)
+        doors = extract_doors(polygons, topo.connected_pairs())
+
+        cfg = Config.default()
+        out = tmp_path / "sbco_out.ifc"
+        IfcExporter(cfg).export(spaces, rects, walls, slabs, doors, out)
+
+        assert out.exists()
+        assert out.stat().st_size > 0
+
+        ifc2 = ifcopenshell.open(str(out))
+        assert len(ifc2.by_type("IfcSpace")) == 3
+        assert len(ifc2.by_type("IfcWall")) > 0
+        assert len(ifc2.by_type("IfcSlab")) > 0
+
+    def test_sbco_space_names_in_ifc(self, tmp_path, sbco_ttl):
+        """SBCO space names should appear in the generated IFC."""
+        import ifcopenshell
+
+        from topo2ifc.config import Config
+        from topo2ifc.geometry.doors import extract_doors
+        from topo2ifc.geometry.slabs import extract_slabs
+        from topo2ifc.geometry.walls import extract_walls
+        from topo2ifc.ifc.exporter import IfcExporter
+        from topo2ifc.layout.postprocess import snap_to_grid, to_shapely_polygons
+        from topo2ifc.layout.solver_heuristic import HeuristicSolver
+        from topo2ifc.rdf.loader import RDFLoader
+        from topo2ifc.topology.graph import TopologyGraph
+
+        loader = RDFLoader(sbco_ttl)
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+        topo = TopologyGraph.from_parts(spaces, loader.extract_adjacencies(g), loader.extract_connections(g))
+        rects = snap_to_grid(HeuristicSolver().solve(topo))
+        polygons = to_shapely_polygons(rects)
+
+        out = tmp_path / "sbco_names.ifc"
+        IfcExporter(Config.default()).export(
+            spaces, rects,
+            extract_walls(polygons),
+            extract_slabs(polygons),
+            extract_doors(polygons, topo.connected_pairs()),
+            out,
+        )
+        ifc2 = ifcopenshell.open(str(out))
+        names = {sp.Name for sp in ifc2.by_type("IfcSpace")}
+        assert "Office Area" in names
+        assert "Meeting Room" in names
+        assert "Corridor" in names
+
+
+class TestMultiStoreyEndToEnd:
+    """End-to-end tests for multi-storey IFC generation."""
+
+    def test_two_storey_ifc(self, tmp_path):
+        """Full pipeline: two_storey.ttl → out.ifc with 2 IfcBuildingStorey."""
+        import ifcopenshell
+
+        from topo2ifc.config import Config
+        from topo2ifc.geometry.doors import extract_doors
+        from topo2ifc.geometry.slabs import extract_slabs
+        from topo2ifc.geometry.walls import extract_walls
+        from topo2ifc.ifc.exporter import IfcExporter
+        from topo2ifc.layout.postprocess import snap_to_grid, to_shapely_polygons
+        from topo2ifc.layout.solver_heuristic import HeuristicSolver
+        from topo2ifc.rdf.loader import RDFLoader
+        from topo2ifc.topology.graph import TopologyGraph
+
+        ttl = FIXTURES / "two_storey.ttl"
+        loader = RDFLoader(ttl)
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+        adjacencies = loader.extract_adjacencies(g)
+        connections = loader.extract_connections(g)
+
+        assert len(spaces) == 5
+
+        topo = TopologyGraph.from_parts(spaces, adjacencies, connections)
+        rects = snap_to_grid(HeuristicSolver().solve(topo))
+        polygons = to_shapely_polygons(rects)
+
+        out = tmp_path / "two_storey.ifc"
+        IfcExporter(Config.default()).export(
+            spaces, rects,
+            extract_walls(polygons),
+            extract_slabs(polygons),
+            extract_doors(polygons, topo.connected_pairs()),
+            out,
+        )
+
+        assert out.exists()
+        ifc2 = ifcopenshell.open(str(out))
+
+        # 5 spaces total
+        assert len(ifc2.by_type("IfcSpace")) == 5
+        # 2 distinct storeys (1F and 2F)
+        assert len(ifc2.by_type("IfcBuildingStorey")) == 2
+
+    def test_two_storey_storey_names(self, tmp_path):
+        """The two IfcBuildingStorey entities should have distinct names."""
+        import ifcopenshell
+
+        from topo2ifc.config import Config
+        from topo2ifc.geometry.doors import extract_doors
+        from topo2ifc.geometry.slabs import extract_slabs
+        from topo2ifc.geometry.walls import extract_walls
+        from topo2ifc.ifc.exporter import IfcExporter
+        from topo2ifc.layout.postprocess import snap_to_grid, to_shapely_polygons
+        from topo2ifc.layout.solver_heuristic import HeuristicSolver
+        from topo2ifc.rdf.loader import RDFLoader
+        from topo2ifc.topology.graph import TopologyGraph
+
+        ttl = FIXTURES / "two_storey.ttl"
+        loader = RDFLoader(ttl)
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+        topo = TopologyGraph.from_parts(spaces, loader.extract_adjacencies(g), loader.extract_connections(g))
+        rects = snap_to_grid(HeuristicSolver().solve(topo))
+        polygons = to_shapely_polygons(rects)
+
+        out = tmp_path / "two_storey_names.ifc"
+        IfcExporter(Config.default()).export(
+            spaces, rects,
+            extract_walls(polygons),
+            extract_slabs(polygons),
+            extract_doors(polygons, topo.connected_pairs()),
+            out,
+        )
+        ifc2 = ifcopenshell.open(str(out))
+        storey_names = {st.Name for st in ifc2.by_type("IfcBuildingStorey")}
+        # Should have 2 unique names
+        assert len(storey_names) == 2

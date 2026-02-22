@@ -14,7 +14,7 @@ from rdflib import Graph, Literal, URIRef
 from rdflib.namespace import RDF as RDF_NS
 
 from topo2ifc.rdf import vocabulary as V
-from topo2ifc.topology.model import AdjacencyEdge, ConnectionEdge, SpaceSpec
+from topo2ifc.topology.model import AdjacencyEdge, ConnectionEdge, SpaceSpec, StoreySpec
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,16 @@ def _first_float(g: Graph, subject: URIRef, predicates: tuple) -> Optional[float
     if raw is not None:
         try:
             return float(raw)
+        except ValueError:
+            pass
+    return None
+
+
+def _first_int(g: Graph, subject: URIRef, predicates: tuple) -> Optional[int]:
+    raw = _first_literal(g, subject, predicates)
+    if raw is not None:
+        try:
+            return int(raw)
         except ValueError:
             pass
     return None
@@ -63,14 +73,74 @@ class RDFLoader:
         return g
 
     # ------------------------------------------------------------------ #
+    # Storey extraction
+    # ------------------------------------------------------------------ #
+
+    def extract_storeys(self, g: Optional[Graph] = None) -> list[StoreySpec]:
+        """Return a :class:`StoreySpec` for every Storey/Level node in the graph."""
+        g = g or self._graph
+        if g is None:
+            raise RuntimeError("Call load() before extract_storeys()")
+
+        storeys: list[StoreySpec] = []
+        seen: set[str] = set()
+
+        for storey_class in V.STOREY_CLASSES:
+            for subject in g.subjects(RDF_NS.type, storey_class):
+                sid = str(subject)
+                if sid in seen:
+                    continue
+                seen.add(sid)
+
+                name = _first_literal(g, subject, V.PROP_NAME)
+                elevation = _first_float(g, subject, V.PROP_ELEVATION) or 0.0
+                storey_height = _first_float(g, subject, V.PROP_STOREY_HEIGHT) or 0.0
+                index = _first_int(g, subject, V.PROP_LEVEL_NUMBER)
+
+                storeys.append(
+                    StoreySpec(
+                        storey_id=sid,
+                        name=name or sid.split("#")[-1].split("/")[-1],
+                        elevation=elevation,
+                        storey_height=storey_height,
+                        index=index,
+                    )
+                )
+
+        # Sort by elevation (then index) for deterministic ordering
+        storeys.sort(key=lambda s: (s.elevation, s.index or 0))
+        logger.debug("Extracted %d storeys", len(storeys))
+        return storeys
+
+    # ------------------------------------------------------------------ #
     # Space extraction
     # ------------------------------------------------------------------ #
 
     def extract_spaces(self, g: Optional[Graph] = None) -> list[SpaceSpec]:
-        """Return a :class:`SpaceSpec` for every Space node in the graph."""
+        """Return a :class:`SpaceSpec` for every Space node in the graph.
+
+        If storey membership is encoded via containment predicates
+        (sbco:isPartOf, bot:isSpaceOf, brick:isPartOf, etc.) the
+        ``storey_id`` and ``storey_elevation`` fields are populated
+        automatically.
+        """
         g = g or self._graph
         if g is None:
             raise RuntimeError("Call load() before extract_spaces()")
+
+        # Build a map from storey URI → StoreySpec for elevation look-up
+        storey_specs = self.extract_storeys(g)
+        storey_by_id: dict[str, StoreySpec] = {s.storey_id: s for s in storey_specs}
+
+        # Also build reverse map: space_uri → storey_uri via hasPart predicates
+        space_to_storey: dict[str, str] = {}
+        for pred in V.HAS_SPACE:
+            for storey_uri, space_uri in g.subject_objects(pred):
+                space_to_storey[str(space_uri)] = str(storey_uri)
+        for pred in V.IS_PART_OF_STOREY:
+            for space_uri, storey_uri in g.subject_objects(pred):
+                if str(storey_uri) in storey_by_id:
+                    space_to_storey[str(space_uri)] = str(storey_uri)
 
         spaces: list[SpaceSpec] = []
         seen: set[str] = set()
@@ -90,6 +160,11 @@ class RDFLoader:
                 ar_min = _first_float(g, subject, V.PROP_ASPECT_RATIO_MIN)
                 ar_max = _first_float(g, subject, V.PROP_ASPECT_RATIO_MAX)
 
+                storey_id = space_to_storey.get(sid)
+                storey_elevation: Optional[float] = None
+                if storey_id and storey_id in storey_by_id:
+                    storey_elevation = storey_by_id[storey_id].elevation
+
                 spaces.append(
                     SpaceSpec(
                         space_id=sid,
@@ -100,6 +175,8 @@ class RDFLoader:
                         height=height,
                         aspect_ratio_min=ar_min,
                         aspect_ratio_max=ar_max,
+                        storey_id=storey_id,
+                        storey_elevation=storey_elevation,
                     )
                 )
 

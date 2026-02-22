@@ -33,7 +33,7 @@ def create_ifc_model(
         - ``project``      : IfcProject
         - ``site``         : IfcSite
         - ``building``     : IfcBuilding
-        - ``storey``       : IfcBuildingStorey
+        - ``storey``       : IfcBuildingStorey  (ground floor)
         - ``body_context`` : IfcGeometricRepresentationSubContext (Body)
         - ``model_context`` : IfcGeometricRepresentationContext (Model)
     """
@@ -82,7 +82,7 @@ def create_ifc_model(
         "aggregate.assign_object", ifc, products=[storey], relating_object=building
     )
 
-    # Set storey elevation
+    # Set storey elevation via ObjectPlacement (IFC4.3: Elevation is deprecated)
     placement = ifc.createIfcLocalPlacement(
         None,
         ifc.createIfcAxis2Placement3D(
@@ -102,3 +102,37 @@ def create_ifc_model(
         "model_context": model_ctx,
     }
     return ifc, ctx
+
+
+def add_storey(
+    ifc: ifcopenshell.file,
+    building,
+    name: str,
+    elevation: float,
+) -> object:
+    """Add an IfcBuildingStorey to *building* at the given elevation (m).
+
+    The elevation is encoded in the storey's ObjectPlacement Z coordinate,
+    following IFC4.3 guidance (Elevation attribute is deprecated).
+
+    Returns the new IfcBuildingStorey entity.
+    """
+    storey = ifcopenshell.api.run(
+        "root.create_entity",
+        ifc,
+        ifc_class="IfcBuildingStorey",
+        name=name,
+    )
+    ifcopenshell.api.run(
+        "aggregate.assign_object", ifc, products=[storey], relating_object=building
+    )
+    placement = ifc.createIfcLocalPlacement(
+        None,
+        ifc.createIfcAxis2Placement3D(
+            ifc.createIfcCartesianPoint((0.0, 0.0, elevation)),
+            ifc.createIfcDirection((0.0, 0.0, 1.0)),
+            ifc.createIfcDirection((1.0, 0.0, 0.0)),
+        ),
+    )
+    storey.ObjectPlacement = placement
+    return storey

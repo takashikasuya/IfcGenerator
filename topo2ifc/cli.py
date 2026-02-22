@@ -67,7 +67,7 @@ def _apply_single_storey_mode(
     for sp in spaces:
         elev = sp.storey_elevation
         if elev is None or abs(elev - base) <= tol:
-            kept_spaces.append(replace(sp, storey_elevation=0.0, storey_id=None))
+            kept_spaces.append(replace(sp, storey_elevation=0.0))
             kept_ids.add(sp.space_id)
 
     kept_adj = [

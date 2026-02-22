@@ -411,3 +411,46 @@ class TestMultiStoreyEndToEnd:
                 walls_by_storey[storey.GlobalId] = count
 
         assert len(walls_by_storey) >= 2
+
+    def test_single_storey_mode_preserves_storey_label(self, tmp_path):
+        """Single-storey mode should keep a meaningful storey name from RDF."""
+        import ifcopenshell
+
+        from topo2ifc.cli import _apply_single_storey_mode
+        from topo2ifc.config import Config
+        from topo2ifc.geometry.doors import extract_doors
+        from topo2ifc.geometry.slabs import extract_slabs
+        from topo2ifc.geometry.walls import extract_walls
+        from topo2ifc.ifc.exporter import IfcExporter
+        from topo2ifc.layout.postprocess import snap_to_grid, to_shapely_polygons
+        from topo2ifc.layout.solver_heuristic import HeuristicSolver
+        from topo2ifc.rdf.loader import RDFLoader
+        from topo2ifc.topology.graph import TopologyGraph
+
+        loader = RDFLoader(FIXTURES / "two_storey.ttl")
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+        adj = loader.extract_adjacencies(g)
+        conn = loader.extract_connections(g)
+        spaces, adj, conn = _apply_single_storey_mode(spaces, adj, conn)
+
+        topo = TopologyGraph.from_parts(spaces, adj, conn)
+        rects = snap_to_grid(HeuristicSolver().solve(topo))
+        polygons = to_shapely_polygons(rects)
+        space_elevations = {sp.space_id: (sp.storey_elevation or 0.0) for sp in spaces}
+
+        out = tmp_path / "single_storey_label.ifc"
+        IfcExporter(Config.default()).export(
+            spaces,
+            rects,
+            extract_walls(polygons, space_elevations=space_elevations),
+            extract_slabs(polygons, space_elevations=space_elevations),
+            extract_doors(polygons, topo.connected_pairs(), space_elevations=space_elevations),
+            out,
+        )
+
+        ifc2 = ifcopenshell.open(str(out))
+        storey_names = [st.Name for st in ifc2.by_type("IfcBuildingStorey")]
+        assert len(storey_names) == 1
+        assert storey_names[0]
+        assert "1f" in storey_names[0].lower() or storey_names[0] == "Ground Floor"

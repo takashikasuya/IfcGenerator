@@ -210,5 +210,6 @@ class TestSingleStoreyMode:
 
         assert len(kept_spaces) == 3
         assert all((s.storey_elevation or 0.0) == pytest.approx(0.0) for s in kept_spaces)
+        assert len({s.storey_id for s in kept_spaces if s.storey_id}) == 1
         assert all(e.space_a in {s.space_id for s in kept_spaces} and e.space_b in {s.space_id for s in kept_spaces} for e in kept_adj)
         assert all(e.space_a in {s.space_id for s in kept_spaces} and e.space_b in {s.space_id for s in kept_spaces} for e in kept_conn)

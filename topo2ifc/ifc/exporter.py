@@ -17,6 +17,7 @@ import logging
 import math
 from pathlib import Path
 from typing import Optional
+from urllib.parse import unquote
 
 import ifcopenshell
 import ifcopenshell.api
@@ -78,6 +79,17 @@ class IfcExporter:
         default_storey = self._ctx["storey"]
 
         rect_by_id = {r.space_id: r for r in rects}
+        spaces_by_elev: dict[float, list[SpaceSpec]] = {}
+        for spec in spaces:
+            if spec.storey_elevation is None:
+                continue
+            key = round(spec.storey_elevation, 3)
+            spaces_by_elev.setdefault(key, []).append(spec)
+
+        def _name_from_storey_id(storey_id: str) -> str:
+            decoded = unquote(storey_id)
+            tail = decoded.split("/")[-1]
+            return tail or decoded
 
         # ---- Build storey map ---------------------------------------- #
         # Collect distinct elevations from spaces; fall back to the default storey.
@@ -99,7 +111,12 @@ class IfcExporter:
             elevations_sorted = sorted(storey_map.keys())
             for i, elev in enumerate(elevations_sorted):
                 # Derive a name from elevation
-                name = f"Level {elev:.1f}m" if elev != 0.0 else "Ground Floor"
+                elev_specs = spaces_by_elev.get(round(elev, 3), [])
+                ids = {s.storey_id for s in elev_specs if s.storey_id}
+                if len(ids) == 1:
+                    name = _name_from_storey_id(next(iter(ids)))
+                else:
+                    name = f"Level {elev:.1f}m" if elev != 0.0 else "Ground Floor"
                 if i == 0 and abs(elev) < _ELEV_TOL:
                     # Reuse the already-created default storey at elevation 0
                     storey_map[elev] = default_storey

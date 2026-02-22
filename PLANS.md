@@ -29,6 +29,11 @@ AI agents must read this file before starting work and mark each task `[x]` when
 - [x] Refine heuristic placement for sparse/disconnected topology using compact grid placement.
 - [x] Add tests for single-storey filtering and sparse-layout compactness behavior.
 
+### H-5 Restore spatial hierarchy labels in single-storey mode
+- [x] Keep original `storey_id` when single-storey filtering is applied.
+- [x] Derive `IfcBuildingStorey.Name` from retained RDF storey identifier when available.
+- [x] Add regression tests for single-storey storey-label preservation.
+
 ---
 
 ## Phase 1 – SBCO Vocabulary Support

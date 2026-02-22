@@ -166,6 +166,39 @@ class TestEndToEnd:
         wall_names = [w.Name for w in ifc2.by_type("IfcWall")]
         assert any(n == "ExteriorWall" for n in wall_names)
 
+    def test_ifc_wall_lengths_are_not_degenerate(self, tmp_path, minimal_ttl):
+        """Generated wall lengths should not collapse to near zero."""
+        from topo2ifc.config import Config
+        from topo2ifc.geometry.doors import extract_doors
+        from topo2ifc.geometry.slabs import extract_slabs
+        from topo2ifc.geometry.walls import extract_walls
+        from topo2ifc.ifc.exporter import IfcExporter
+        from topo2ifc.layout.postprocess import snap_to_grid, to_shapely_polygons
+        from topo2ifc.layout.solver_heuristic import HeuristicSolver
+        from topo2ifc.rdf.loader import RDFLoader
+        from topo2ifc.topology.graph import TopologyGraph
+
+        loader = RDFLoader(minimal_ttl)
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+        topo = TopologyGraph.from_parts(spaces, loader.extract_adjacencies(g), loader.extract_connections(g))
+        rects = snap_to_grid(HeuristicSolver().solve(topo))
+        polygons = to_shapely_polygons(rects)
+        walls = extract_walls(polygons)
+
+        out = tmp_path / "wall_len.ifc"
+        IfcExporter(Config.default()).export(
+            spaces,
+            rects,
+            walls,
+            extract_slabs(polygons),
+            extract_doors(polygons, topo.connected_pairs()),
+            out,
+        )
+        lengths = [w.length for w in walls]
+        assert lengths
+        assert min(lengths) >= 0.5
+
     def test_ifc_uses_merged_storey_slab(self, tmp_path, minimal_ttl):
         """Generated IFC should use one merged slab for a single-storey layout."""
         import ifcopenshell
@@ -198,6 +231,39 @@ class TestEndToEnd:
         )
         ifc2 = ifcopenshell.open(str(out))
         assert len(ifc2.by_type("IfcSlab")) == 1
+
+    def test_ifc_has_roof(self, tmp_path, minimal_ttl):
+        """Generated IFC should include a roof on top of the storey."""
+        import ifcopenshell
+
+        from topo2ifc.config import Config
+        from topo2ifc.geometry.doors import extract_doors
+        from topo2ifc.geometry.slabs import extract_slabs
+        from topo2ifc.geometry.walls import extract_walls
+        from topo2ifc.ifc.exporter import IfcExporter
+        from topo2ifc.layout.postprocess import snap_to_grid, to_shapely_polygons
+        from topo2ifc.layout.solver_heuristic import HeuristicSolver
+        from topo2ifc.rdf.loader import RDFLoader
+        from topo2ifc.topology.graph import TopologyGraph
+
+        loader = RDFLoader(minimal_ttl)
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+        topo = TopologyGraph.from_parts(spaces, loader.extract_adjacencies(g), loader.extract_connections(g))
+        rects = snap_to_grid(HeuristicSolver().solve(topo))
+        polygons = to_shapely_polygons(rects)
+
+        out = tmp_path / "roof.ifc"
+        IfcExporter(Config.default()).export(
+            spaces,
+            rects,
+            extract_walls(polygons),
+            extract_slabs(polygons),
+            extract_doors(polygons, topo.connected_pairs()),
+            out,
+        )
+        ifc2 = ifcopenshell.open(str(out))
+        assert len(ifc2.by_type("IfcRoof")) >= 1
 
     def test_ifc_space_profile_is_local_coordinates(self, tmp_path, minimal_ttl):
         """IfcSpace profile origin should be local (no double XY translation)."""

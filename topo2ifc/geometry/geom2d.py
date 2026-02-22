@@ -20,19 +20,28 @@ from shapely.geometry import (
 from shapely.ops import unary_union
 
 
-def shared_boundary(poly_a: Polygon, poly_b: Polygon, tol: float = 0.01) -> Optional[LineString]:
-    """Return the shared edge between two adjacent polygons, or None."""
-    inter = poly_a.buffer(tol).intersection(poly_b.buffer(tol))
+def shared_boundary(poly_a: Polygon, poly_b: Polygon, tol: float = 0.01):
+    """Return shared boundary geometry (LineString/MultiLineString), or None.
+
+    Uses boundary intersection directly to avoid near-zero artifacts from
+    buffered boundary intersections.
+    """
+    inter = poly_a.boundary.intersection(poly_b.boundary)
     if inter.is_empty:
-        return None
-    # Extract linear geometry from intersection
-    boundary = inter.boundary
-    if boundary.is_empty:
-        return None
-    if isinstance(boundary, (LineString, MultiLineString)):
-        return boundary if not boundary.is_empty else None
-    # For polygon intersections use the boundary
-    return boundary if isinstance(boundary, LineString) else None
+        # Fallback with slight buffering for nearly touching inputs.
+        inter = poly_a.buffer(tol).boundary.intersection(poly_b.buffer(tol).boundary)
+        if inter.is_empty:
+            return None
+    if isinstance(inter, (LineString, MultiLineString)):
+        return inter
+    if hasattr(inter, "geoms"):
+        lines = [g for g in inter.geoms if isinstance(g, (LineString, MultiLineString))]
+        if not lines:
+            return None
+        if len(lines) == 1:
+            return lines[0]
+        return unary_union(lines)
+    return None
 
 
 def exterior_edges(polygon: Polygon) -> list[LineString]:

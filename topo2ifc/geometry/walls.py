@@ -52,11 +52,15 @@ def _iter_lines(geom) -> Iterable[LineString]:
     if geom is None or geom.is_empty:
         return
     if isinstance(geom, LineString):
-        yield geom
+        coords = list(geom.coords)
+        if len(coords) >= 2:
+            # Split closed/open polylines into edge segments.
+            for i in range(len(coords) - 1):
+                yield LineString([coords[i], coords[i + 1]])
     elif isinstance(geom, MultiLineString):
         for g in geom.geoms:
             if isinstance(g, LineString) and not g.is_empty:
-                yield g
+                yield from _iter_lines(g)
     elif isinstance(geom, Polygon):
         coords = list(geom.exterior.coords)
         for i in range(len(coords) - 1):

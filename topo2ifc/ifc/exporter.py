@@ -7,8 +7,9 @@ Pipeline
 3. For each space  → IfcSpace  + extruded footprint  (placed in its storey)
 4. For each slab   → IfcSlab   + extruded footprint
 5. For each wall   → IfcWall   + extruded rectangle
-6. For each door   → IfcDoor   + position marker
-7. Write IFC file
+6. For each roof   → IfcRoof   + extruded footprint (at wall top)
+7. For each door   → IfcDoor   + position marker
+8. Write IFC file
 """
 
 from __future__ import annotations
@@ -181,6 +182,16 @@ class IfcExporter:
                 relating_structure=_get_storey_by_elevation(wall.elevation),
             )
 
+        # ---- Roofs --------------------------------------------------- #
+        for slab in slabs:
+            ifc_roof = self._create_roof(slab, body_ctx)
+            ifcopenshell.api.run(
+                "spatial.assign_container",
+                ifc,
+                products=[ifc_roof],
+                relating_structure=_get_storey_by_elevation(slab.elevation),
+            )
+
         # ---- Doors --------------------------------------------------- #
         for door in doors:
             ifc_door = self._create_door(door, body_ctx)
@@ -286,6 +297,33 @@ class IfcExporter:
         angle = math.atan2(dy, dx)
         entity.ObjectPlacement = self._local_placement_rotated(
             wall.x1, wall.y1, wall.elevation, angle
+        )
+        return entity
+
+    # ------------------------------------------------------------------ #
+    # Roof
+    # ------------------------------------------------------------------ #
+
+    def _create_roof(self, slab: SlabSpec, body_ctx):
+        ifc = self.ifc
+        entity = ifcopenshell.api.run(
+            "root.create_entity",
+            ifc,
+            ifc_class="IfcRoof",
+            name=f"Roof_{slab.space_id}",
+        )
+        bounds = slab.polygon.bounds
+        x, y = bounds[0], bounds[1]
+        w, h = bounds[2] - bounds[0], bounds[3] - bounds[1]
+        thickness = max(0.05, slab.thickness)
+        shape = self._extruded_rect_shape(0.0, 0.0, w, h, thickness, body_ctx)
+        ifcopenshell.api.run(
+            "geometry.assign_representation", ifc, product=entity, representation=shape
+        )
+        entity.ObjectPlacement = self._local_placement(
+            x,
+            y,
+            slab.elevation + self.geo.wall_height,
         )
         return entity
 

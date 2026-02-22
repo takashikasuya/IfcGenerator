@@ -45,6 +45,12 @@ AI agents must read this file before starting work and mark each task `[x]` when
 - [x] Fix IfcSpace geometry creation to avoid double XY translation.
 - [x] Validate that generated spaces sit on the merged slab footprint.
 
+### H-8 Fix wall length degeneration and add roof
+- [x] Fix wall segment extraction so closed boundary lines are split into meaningful edges.
+- [x] Improve shared-boundary extraction to avoid near-zero wall artifacts.
+- [x] Export rooftop geometry (`IfcRoof`) for each storey slab footprint.
+- [x] Add regression tests for non-degenerate wall lengths and roof existence.
+
 ---
 
 ## Phase 1 – SBCO Vocabulary Support

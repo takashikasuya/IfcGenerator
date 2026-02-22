@@ -6,6 +6,7 @@ ConnectionEdge – traversal (door) relationship
 LayoutRect  – 2-D rectangular placement produced by the Layout Solver
 StoreySpec  – attributes of a building storey / level
 EquipmentSpec – attributes of equipment linked to a containing space
+PointSpec – attributes of SBCO points linked to equipment
 """
 
 from __future__ import annotations
@@ -100,6 +101,19 @@ class EquipmentSpec:
     equipment_class: str = "Equipment"
     device_type: Optional[str] = None
     maintenance_interval: Optional[str] = None
+
+
+@dataclass
+class PointSpec:
+    """Specification of an SBCO point node linked to parent equipment."""
+
+    point_id: str
+    name: str = ""
+    equipment_id: Optional[str] = None
+    point_class: str = "Point"
+    point_type: Optional[str] = None
+    unit: Optional[str] = None
+    has_quantity: Optional[str] = None
 
 
 # --------------------------------------------------------------------------- #

@@ -31,8 +31,8 @@ from topo2ifc.geometry.doors import DoorSpec
 from topo2ifc.geometry.slabs import SlabSpec
 from topo2ifc.geometry.walls import WallSegment
 from topo2ifc.ifc.ifc_context import add_storey, create_ifc_model
-from topo2ifc.ifc.psets import add_equipment_pset, add_space_pset
-from topo2ifc.topology.model import EquipmentSpec, LayoutRect, SpaceSpec
+from topo2ifc.ifc.psets import add_equipment_pset, add_point_pset, add_space_pset
+from topo2ifc.topology.model import EquipmentSpec, LayoutRect, PointSpec, SpaceSpec
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +62,7 @@ class IfcExporter:
         doors: list[DoorSpec],
         output_path: str | Path,
         equipment: Optional[list[EquipmentSpec]] = None,
+        points: Optional[list[PointSpec]] = None,
     ) -> ifcopenshell.file:
         """Generate the IFC model and write it to *output_path*.
 
@@ -205,6 +206,8 @@ class IfcExporter:
 
 
         # ---- Equipment ----------------------------------------------- #
+        equipment_by_id: dict[str, object] = {}
+        equipment_specs_by_id: dict[str, EquipmentSpec] = {eq.equipment_id: eq for eq in (equipment or [])}
         for eq in equipment or []:
             ifc_eq = self._create_equipment(eq, body_ctx, rect_by_id)
             target_storey = default_storey
@@ -222,6 +225,29 @@ class IfcExporter:
                 "spatial.assign_container",
                 ifc,
                 products=[ifc_eq],
+                relating_structure=target_storey,
+            )
+            equipment_by_id[eq.equipment_id] = ifc_eq
+
+        for point in points or []:
+            ifc_point = self._create_point(point, body_ctx)
+            target_storey = default_storey
+            if point.equipment_id and point.equipment_id in equipment_by_id:
+                ifcopenshell.api.run(
+                    "nest.assign_object",
+                    ifc,
+                    related_objects=[ifc_point],
+                    relating_object=equipment_by_id[point.equipment_id],
+                )
+                parent_eq = equipment_specs_by_id.get(point.equipment_id)
+                if parent_eq and parent_eq.space_id:
+                    spec = next((sp for sp in spaces if sp.space_id == parent_eq.space_id), None)
+                    if spec is not None:
+                        target_storey = _get_storey(spec)
+            ifcopenshell.api.run(
+                "spatial.assign_container",
+                ifc,
+                products=[ifc_point],
                 relating_structure=target_storey,
             )
 
@@ -479,5 +505,37 @@ class IfcExporter:
             equipment_class=eq.equipment_class,
             device_type=eq.device_type,
             maintenance_interval=eq.maintenance_interval,
+        )
+        return entity
+
+    def _create_point(self, point: PointSpec, body_ctx):
+        ifc = self.ifc
+        ptype = (point.point_type or "").lower()
+        ifc_class = "IfcActuator" if (ptype.startswith("cmd") or "command" in ptype) else "IfcSensor"
+        entity = ifcopenshell.api.run(
+            "root.create_entity",
+            ifc,
+            ifc_class=ifc_class,
+            name=point.name or point.point_id,
+        )
+        entity.ObjectType = point.point_class
+
+        placement_x, placement_y, placement_z = 0.0, 0.0, self.geo.storey_elevation
+        shape = self._extruded_rect_shape(0.0, 0.0, 0.1, 0.1, 0.1, body_ctx)
+        ifcopenshell.api.run(
+            "geometry.assign_representation",
+            ifc,
+            product=entity,
+            representation=shape,
+        )
+        entity.ObjectPlacement = self._local_placement(placement_x, placement_y, placement_z)
+
+        add_point_pset(
+            ifc,
+            entity,
+            point_class=point.point_class,
+            point_type=point.point_type,
+            unit=point.unit,
+            has_quantity=point.has_quantity,
         )
         return entity

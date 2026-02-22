@@ -652,6 +652,7 @@ class TestEquipmentExport:
         g = loader.load()
         spaces = loader.extract_spaces(g)
         equipment = loader.extract_equipment(g)
+        points = loader.extract_points(g)
         topo = TopologyGraph.from_parts(spaces, loader.extract_adjacencies(g), loader.extract_connections(g))
         rects = snap_to_grid(HeuristicSolver().solve(topo))
         polygons = to_shapely_polygons(rects)
@@ -665,6 +666,7 @@ class TestEquipmentExport:
             extract_doors(polygons, topo.connected_pairs()),
             out,
             equipment=equipment,
+            points=points,
         )
 
         ifc = ifcopenshell.open(str(out))
@@ -688,3 +690,67 @@ class TestEquipmentExport:
         assert any("EquipmentClass" in names for names in all_props)
         assert any("DeviceType" in names for names in all_props)
         assert any("MaintenanceInterval" in names for names in all_props)
+
+
+    def test_exports_points_as_sensor_or_actuator_with_psets(self, tmp_path):
+        """SBCO points should be exported as IfcSensor/IfcActuator with metadata pset."""
+        import ifcopenshell
+
+        from topo2ifc.config import Config
+        from topo2ifc.geometry.doors import extract_doors
+        from topo2ifc.geometry.slabs import extract_slabs
+        from topo2ifc.geometry.walls import extract_walls
+        from topo2ifc.ifc.exporter import IfcExporter
+        from topo2ifc.layout.postprocess import snap_to_grid, to_shapely_polygons
+        from topo2ifc.layout.solver_heuristic import HeuristicSolver
+        from topo2ifc.rdf.loader import RDFLoader
+        from topo2ifc.topology.graph import TopologyGraph
+
+        loader = RDFLoader(FIXTURES / "sbco_equipment.ttl")
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+        equipment = loader.extract_equipment(g)
+        points = loader.extract_points(g)
+        topo = TopologyGraph.from_parts(spaces, loader.extract_adjacencies(g), loader.extract_connections(g))
+        rects = snap_to_grid(HeuristicSolver().solve(topo))
+        polygons = to_shapely_polygons(rects)
+
+        out = tmp_path / "points.ifc"
+        IfcExporter(Config.default()).export(
+            spaces,
+            rects,
+            extract_walls(polygons),
+            extract_slabs(polygons),
+            extract_doors(polygons, topo.connected_pairs()),
+            out,
+            equipment=equipment,
+            points=points,
+        )
+
+        ifc = ifcopenshell.open(str(out))
+        sensors = ifc.by_type("IfcSensor")
+        actuators = ifc.by_type("IfcActuator")
+        assert len(sensors) >= 1
+        assert len(actuators) >= 1
+
+        rel_nests = ifc.by_type("IfcRelNests")
+        proxy_ids = {p.id() for p in ifc.by_type("IfcBuildingElementProxy")}
+        has_parent_proxy = False
+        for rel in rel_nests:
+            if rel.RelatingObject and rel.RelatingObject.id() in proxy_ids:
+                if any(obj.is_a("IfcSensor") or obj.is_a("IfcActuator") for obj in rel.RelatedObjects or []):
+                    has_parent_proxy = True
+                    break
+        assert has_parent_proxy
+
+        rel_psets = ifc.by_type("IfcRelDefinesByProperties")
+        point_psets = []
+        for rel in rel_psets:
+            pdef = rel.RelatingPropertyDefinition
+            if pdef and pdef.is_a("IfcPropertySet") and pdef.Name == "Pset_Topo2IfcPoint":
+                point_psets.append({prop.Name for prop in pdef.HasProperties})
+
+        assert any("PointClass" in names for names in point_psets)
+        assert any("PointType" in names for names in point_psets)
+        assert any("Unit" in names for names in point_psets)
+        assert any("HasQuantity" in names for names in point_psets)

@@ -61,3 +61,32 @@ def add_equipment_pset(
         props["MaintenanceInterval"] = maintenance_interval
 
     ifcopenshell.api.run("pset.edit_pset", ifc, pset=pset, properties=props)
+
+
+def add_point_pset(
+    ifc: ifcopenshell.file,
+    point_entity,
+    point_class: str,
+    point_type: str | None = None,
+    unit: str | None = None,
+    has_quantity: str | None = None,
+) -> None:
+    """Add point-related property set metadata."""
+    pset = ifcopenshell.api.run(
+        "pset.add_pset",
+        ifc,
+        product=point_entity,
+        name="Pset_Topo2IfcPoint",
+    )
+
+    props: dict = {
+        "PointClass": point_class,
+    }
+    if point_type:
+        props["PointType"] = point_type
+    if unit:
+        props["Unit"] = unit
+    if has_quantity:
+        props["HasQuantity"] = has_quantity
+
+    ifcopenshell.api.run("pset.edit_pset", ifc, pset=pset, properties=props)

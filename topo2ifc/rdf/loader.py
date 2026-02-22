@@ -69,9 +69,38 @@ class RDFLoader:
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
         self._graph: Optional[Graph] = None
+        self._warnings: list[dict[str, str]] = []
+        self._warning_keys: set[tuple[str, str, str]] = set()
+
+    def get_warnings(self) -> list[dict[str, str]]:
+        """Return structured extraction warnings collected so far."""
+        return list(self._warnings)
+
+    def _add_warning(
+        self,
+        code: str,
+        entity_id: str,
+        predicate: str,
+        message: str,
+    ) -> None:
+        key = (code, entity_id, predicate)
+        if key in self._warning_keys:
+            return
+        self._warning_keys.add(key)
+        self._warnings.append(
+            {
+                "code": code,
+                "severity": "warning",
+                "entity_id": entity_id,
+                "predicate": predicate,
+                "message": message,
+            }
+        )
 
     def load(self) -> Graph:
         """Parse the RDF file and return the raw rdflib Graph."""
+        self._warnings.clear()
+        self._warning_keys.clear()
         g = Graph()
         fmt = _detect_format(self.path)
         g.parse(str(self.path), format=fmt)
@@ -160,6 +189,13 @@ class RDFLoader:
                 seen.add(sid)
 
                 name = _first_literal(g, subject, V.PROP_NAME)
+                if space_class == V.SBCO.Space and name is None:
+                    self._add_warning(
+                        code="sbco.space.missing_name",
+                        entity_id=sid,
+                        predicate=str(V.SBCO.name),
+                        message="SBCO space is missing sbco:name; using URI tail as fallback name.",
+                    )
                 category = _first_literal(g, subject, V.PROP_CATEGORY)
                 area_target = _first_float(g, subject, V.PROP_AREA_TARGET)
                 area_min = _first_float(g, subject, V.PROP_AREA_MIN)

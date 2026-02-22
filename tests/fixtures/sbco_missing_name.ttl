@@ -1,0 +1,13 @@
+@prefix sbco: <https://www.sbco.or.jp/ont/> .
+@prefix ex: <urn:test:> .
+
+ex:level_1 a sbco:Level ;
+    sbco:name "Level 1" ;
+    sbco:hasPart ex:space_named, ex:space_unnamed .
+
+ex:space_named a sbco:Space ;
+    sbco:name "Named Space" ;
+    sbco:isPartOf ex:level_1 .
+
+ex:space_unnamed a sbco:Space ;
+    sbco:isPartOf ex:level_1 .

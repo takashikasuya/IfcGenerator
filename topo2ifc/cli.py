@@ -151,7 +151,16 @@ def main(
     # ---- Validation --------------------------------------------------- #
     layout_errors = validate_layout(rects, spaces)
     area_devs = compute_area_deviations(rects, spaces)
-    report = build_constraints_report(topo_errors, layout_errors, area_devs)
+    topology_warnings = loader.get_warnings()
+    report = build_constraints_report(
+        topo_errors,
+        layout_errors,
+        area_devs,
+        topology_warnings=topology_warnings,
+    )
+
+    for warning in topology_warnings:
+        logger.warning("Topology warning [%s]: %s (entity=%s, predicate=%s)", warning["code"], warning["message"], warning["entity_id"], warning["predicate"])
 
     if layout_errors:
         for e in layout_errors:

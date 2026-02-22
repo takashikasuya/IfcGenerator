@@ -114,8 +114,8 @@ AI agents must read this file before starting work and mark each task `[x]` when
 ## Phase 4 – Quality & CI
 
 ### 4-1 Improve validation reporting
-- [ ] Report SBCO constraint violations (e.g., a space missing `sbco:name`) as structured warnings rather than silent defaults.
-- [ ] Add unit tests for the new warning paths.
+- [x] Report SBCO constraint violations (e.g., a space missing `sbco:name`) as structured warnings rather than silent defaults.
+- [x] Add unit tests for the new warning paths.
 
 ### 4-2 Documentation
 - [x] Update `README.md` to add an SBCO-vocabulary example and link to the smartbuilding_ontology repository.

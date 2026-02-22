@@ -254,3 +254,26 @@ class TestSingleStoreyMode:
         assert len({s.storey_id for s in kept_spaces if s.storey_id}) == 1
         assert all(e.space_a in {s.space_id for s in kept_spaces} and e.space_b in {s.space_id for s in kept_spaces} for e in kept_adj)
         assert all(e.space_a in {s.space_id for s in kept_spaces} and e.space_b in {s.space_id for s in kept_spaces} for e in kept_conn)
+
+
+class TestSBCOConstraintWarnings:
+    def test_warns_when_sbco_space_name_missing(self):
+        loader = RDFLoader(FIXTURES / "sbco_missing_name.ttl")
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+
+        assert len(spaces) == 2
+
+        warnings = loader.get_warnings()
+        assert len(warnings) == 1
+        warning = warnings[0]
+        assert warning["code"] == "sbco.space.missing_name"
+        assert warning["severity"] == "warning"
+        assert warning["entity_id"] == "urn:test:space_unnamed"
+        assert warning["predicate"] == "https://www.sbco.or.jp/ont/name"
+
+    def test_no_warning_when_sbco_space_name_present(self):
+        loader = RDFLoader(FIXTURES / "sbco_minimal.ttl")
+        g = loader.load()
+        loader.extract_spaces(g)
+        assert loader.get_warnings() == []

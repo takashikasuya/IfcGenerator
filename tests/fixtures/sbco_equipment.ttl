@@ -1,0 +1,23 @@
+@prefix sbco: <https://www.sbco.or.jp/ont/> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+<urn:sbco:level:1> a sbco:Level ;
+    sbco:name "Level 1" ;
+    sbco:elevation "0.0"^^xsd:double ;
+    sbco:hasPart <urn:sbco:space:office>, <urn:sbco:space:meeting> .
+
+<urn:sbco:space:office> a sbco:Space ;
+    sbco:name "Office" ;
+    sbco:isPartOf <urn:sbco:level:1> .
+
+<urn:sbco:space:meeting> a sbco:Space ;
+    sbco:name "Meeting" ;
+    sbco:isPartOf <urn:sbco:level:1> .
+
+<urn:sbco:eq:ahu-01> a sbco:Equipment ;
+    sbco:name "AHU-01" ;
+    sbco:locatedIn <urn:sbco:space:office> .
+
+<urn:sbco:eq:vav-01> a sbco:EquipmentExt ;
+    sbco:name "VAV-01" ;
+    sbco:locatedIn <urn:sbco:space:meeting> .

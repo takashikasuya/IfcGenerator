@@ -53,6 +53,12 @@ STOREY_CLASSES: tuple[URIRef, ...] = (
     TOPO.Storey,
 )
 
+# Equipment concepts (Phase 3 pass-through)
+EQUIPMENT_CLASSES: tuple[URIRef, ...] = (
+    SBCO.Equipment,
+    SBCO.EquipmentExt,
+)
+
 # --------------------------------------------------------------------------- #
 # Object Properties
 # --------------------------------------------------------------------------- #
@@ -85,6 +91,11 @@ IS_PART_OF_STOREY: tuple[URIRef, ...] = (
     BRICK.isPartOf,
     SBCO.isPartOf,
     TOPO.isPartOf,
+)
+
+# Equipment → Space placement relation
+LOCATED_IN: tuple[URIRef, ...] = (
+    SBCO.locatedIn,
 )
 
 # Building → Storey containment

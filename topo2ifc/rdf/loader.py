@@ -14,7 +14,13 @@ from rdflib import Graph, Literal, URIRef
 from rdflib.namespace import RDF as RDF_NS
 
 from topo2ifc.rdf import vocabulary as V
-from topo2ifc.topology.model import AdjacencyEdge, ConnectionEdge, SpaceSpec, StoreySpec
+from topo2ifc.topology.model import (
+    AdjacencyEdge,
+    ConnectionEdge,
+    EquipmentSpec,
+    SpaceSpec,
+    StoreySpec,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -189,6 +195,42 @@ class RDFLoader:
     # ------------------------------------------------------------------ #
     # Edge extraction
     # ------------------------------------------------------------------ #
+
+    def extract_equipment(self, g: Optional[Graph] = None) -> list[EquipmentSpec]:
+        """Return a :class:`EquipmentSpec` for every SBCO equipment node."""
+        g = g or self._graph
+        if g is None:
+            raise RuntimeError("Call load() before extract_equipment()")
+
+        equipment_list: list[EquipmentSpec] = []
+        seen: set[str] = set()
+
+        for equipment_class in V.EQUIPMENT_CLASSES:
+            for subject in g.subjects(RDF_NS.type, equipment_class):
+                eid = str(subject)
+                if eid in seen:
+                    continue
+                seen.add(eid)
+
+                name = _first_literal(g, subject, V.PROP_NAME)
+                space_id: Optional[str] = None
+                for pred in V.LOCATED_IN:
+                    for obj in g.objects(subject, pred):
+                        space_id = str(obj)
+                        break
+                    if space_id:
+                        break
+
+                equipment_list.append(
+                    EquipmentSpec(
+                        equipment_id=eid,
+                        name=name or eid.split("#")[-1].split("/")[-1],
+                        space_id=space_id,
+                        equipment_class=str(equipment_class).split("#")[-1].split("/")[-1],
+                    )
+                )
+
+        return equipment_list
 
     def extract_adjacencies(
         self,

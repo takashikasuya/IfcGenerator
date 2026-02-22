@@ -49,8 +49,8 @@ AI agents must read this file before starting work and mark each task `[x]` when
 ## Phase 3 – Equipment and Point Pass-through
 
 ### 3-1 Extract equipment from SBCO RDF
-- [ ] Parse `sbco:Equipment` / `sbco:EquipmentExt` nodes and their `sbco:locatedIn` links to spaces.
-- [ ] Store as a list of `EquipmentSpec` (new dataclass in `topo2ifc/topology/model.py`).
+- [x] Parse `sbco:Equipment` / `sbco:EquipmentExt` nodes and their `sbco:locatedIn` links to spaces.
+- [x] Store as a list of `EquipmentSpec` (new dataclass in `topo2ifc/topology/model.py`).
 
 ### 3-2 Export equipment as IFC elements
 - [ ] Map each `EquipmentSpec` to an `IfcBuildingElementProxy` (or appropriate IFC type) placed in its containing space.

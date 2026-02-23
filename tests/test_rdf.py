@@ -339,3 +339,17 @@ class TestVerticalCirculationLoader:
         assert len(cores) == 2
         assert {c.core_type for c in cores} == {"stair", "elevator"}
         assert all(core.space_id == "urn:test:space1" for core in cores)
+
+    def test_multi_storey_vertical_circulation_fixtures_are_loadable(self):
+        two_storey = RDFLoader(FIXTURES / "two_storey_with_stair.ttl")
+        g1 = two_storey.load()
+        six_storey = RDFLoader(FIXTURES / "six_storey_with_elevator.ttl")
+        g2 = six_storey.load()
+        multi_core = RDFLoader(FIXTURES / "multi_core_highrise.ttl")
+        g3 = multi_core.load()
+
+        assert len(two_storey.extract_storeys(g1)) == 2
+        assert len(six_storey.extract_storeys(g2)) == 6
+        assert len(multi_core.extract_storeys(g3)) == 6
+        assert any(c.core_type == "stair" for c in two_storey.extract_vertical_cores(g1))
+        assert any(c.core_type == "elevator" for c in six_storey.extract_vertical_cores(g2))

@@ -31,6 +31,7 @@ class SolverConfig:
     grid_unit: float = 0.5  # grid resolution for CP-SAT (metres)
     max_iter: int = 5000  # SA / hill-climbing iterations
     highrise_elevator_threshold: int = 6
+    multi_storey_mode: bool = False
 
 
 @dataclass

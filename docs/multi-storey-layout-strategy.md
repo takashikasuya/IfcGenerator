@@ -50,3 +50,25 @@ Stage 1 出力を入力に、階間で共有される垂直要素（階段・エ
 - 戦略を文書で定義し、Stage 1/2 の責務境界が明確である。
 - 単層入力の挙動不変ポリシーが明記されている。
 - 6-2/6-3 で実装するコア事前配置・OR-Tools拡張へ接続可能な仕様になっている。
+
+## 6-5 ロールアウト安全策（追加）
+
+### 追加フィクスチャ
+
+- `tests/fixtures/two_storey_with_stair.ttl`
+- `tests/fixtures/six_storey_with_elevator.ttl`
+- `tests/fixtures/multi_core_highrise.ttl`
+
+### 回帰基準
+
+- 単層入力では `multi_storey_mode` の有無で bbox が不変。
+- 複層・複数コア入力で overlap が発生しない。
+
+### 性能/品質ゲート
+
+- 6層エレベータ系 fixture をヒューリスティックで解いたとき、
+  CI環境で 5 秒以内に完了すること。
+- 解の品質指標として最低限以下を満たすこと。
+  - overlap violations = 0
+  - すべての space にレイアウト矩形が存在
+  - 垂直動線（階段/EV）要素が IFC に出力される

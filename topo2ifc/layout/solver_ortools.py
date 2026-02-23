@@ -136,11 +136,99 @@ class OrtoolsSolver(LayoutSolverBase):
             model.add_max_equality(proximity, [0, (2 * max_dim_g) - manhattan])
             core_conflict_penalties.append(proximity)
 
+        # Objective term 5: keep corresponding vertical cores stacked in XY.
+        # Enabled only for multi-storey mode to preserve single-storey behavior.
+        core_stack_dist_vars = []
+        if self.config.multi_storey_mode:
+            for ia, ib in self._core_stack_pairs(spaces):
+                dx = model.new_int_var(0, 2 * (max_coord_g + max_dim_g), f"stack_dx_{ia}_{ib}")
+                dy = model.new_int_var(0, 2 * (max_coord_g + max_dim_g), f"stack_dy_{ia}_{ib}")
+                model.add_abs_equality(dx, center_x2[ia] - center_x2[ib])
+                model.add_abs_equality(dy, center_y2[ia] - center_y2[ib])
+                core_stack_dist_vars.append(dx)
+                core_stack_dist_vars.append(dy)
+
+        # Objective term 6: vertical circulation efficiency proxy.
+        # Penalize horizontal distance from non-core spaces to nearest stair/elevator.
+        circulation_penalties = []
+        if self.config.multi_storey_mode:
+            stair_ids = [i for i, sp in enumerate(spaces) if self._core_type(sp) == "stair"]
+            elevator_ids = [i for i, sp in enumerate(spaces) if self._core_type(sp) == "elevator"]
+            non_core_ids = [i for i, sp in enumerate(spaces) if self._core_type(sp) not in {"stair", "elevator"}]
+
+            # If spaces carry storey metadata, scope circulation distances to spaces on
+            # the same storey. Otherwise, fall back to the original global behavior.
+            has_storey_attr = any(hasattr(sp, "storey_id") for sp in spaces)
+
+            for i in non_core_ids:
+                if stair_ids:
+                    if has_storey_attr:
+                        storey_i = getattr(spaces[i], "storey_id", None)
+                        relevant_stair_ids = [
+                            j for j in stair_ids if getattr(spaces[j], "storey_id", None) == storey_i
+                        ]
+                    else:
+                        relevant_stair_ids = stair_ids
+
+                    if relevant_stair_ids:
+                        stair_dist = []
+                        for j in relevant_stair_ids:
+                            dx = model.new_int_var(
+                                0, 2 * (max_coord_g + max_dim_g), f"stair_dx_{i}_{j}"
+                            )
+                            dy = model.new_int_var(
+                                0, 2 * (max_coord_g + max_dim_g), f"stair_dy_{i}_{j}"
+                            )
+                            manhattan = model.new_int_var(
+                                0, 4 * (max_coord_g + max_dim_g), f"stair_dist_{i}_{j}"
+                            )
+                            model.add_abs_equality(dx, center_x2[i] - center_x2[j])
+                            model.add_abs_equality(dy, center_y2[i] - center_y2[j])
+                            model.add(manhattan == dx + dy)
+                            stair_dist.append(manhattan)
+                        nearest_stair = model.new_int_var(
+                            0, 4 * (max_coord_g + max_dim_g), f"nearest_stair_{i}"
+                        )
+                        model.add_min_equality(nearest_stair, stair_dist)
+                        circulation_penalties.append(nearest_stair)
+
+                if elevator_ids:
+                    if has_storey_attr:
+                        storey_i = getattr(spaces[i], "storey_id", None)
+                        relevant_elev_ids = [
+                            j for j in elevator_ids if getattr(spaces[j], "storey_id", None) == storey_i
+                        ]
+                    else:
+                        relevant_elev_ids = elevator_ids
+
+                    if relevant_elev_ids:
+                        elev_dist = []
+                        for j in relevant_elev_ids:
+                            dx = model.new_int_var(
+                                0, 2 * (max_coord_g + max_dim_g), f"elev_dx_{i}_{j}"
+                            )
+                            dy = model.new_int_var(
+                                0, 2 * (max_coord_g + max_dim_g), f"elev_dy_{i}_{j}"
+                            )
+                            manhattan = model.new_int_var(
+                                0, 4 * (max_coord_g + max_dim_g), f"elev_dist_{i}_{j}"
+                            )
+                            model.add_abs_equality(dx, center_x2[i] - center_x2[j])
+                            model.add_abs_equality(dy, center_y2[i] - center_y2[j])
+                            model.add(manhattan == dx + dy)
+                            elev_dist.append(manhattan)
+                        nearest_elev = model.new_int_var(
+                            0, 4 * (max_coord_g + max_dim_g), f"nearest_elev_{i}"
+                        )
+                        model.add_min_equality(nearest_elev, elev_dist)
+                        circulation_penalties.append(nearest_elev)
         model.minimize(
             100 * sum(deviations)
             + 10 * (max_x + max_y)
             + sum(pair_dist_vars)
             + 5 * sum(core_conflict_penalties)
+            + 5 * sum(core_stack_dist_vars)
+            + sum(circulation_penalties)
         )
 
         # Solve
@@ -197,3 +285,30 @@ class OrtoolsSolver(LayoutSolverBase):
         if "elevator" in text or "lift" in text:
             return "elevator"
         return "other"
+
+    def _core_stack_pairs(self, spaces) -> list[tuple[int, int]]:
+        grouped: dict[tuple[str, str], list[int]] = {}
+        for i, sp in enumerate(spaces):
+            ctype = self._core_type(sp)
+            if ctype not in {"stair", "elevator"}:
+                continue
+            key = (ctype, self._core_stack_base(sp))
+            grouped.setdefault(key, []).append(i)
+
+        pairs: list[tuple[int, int]] = []
+        for ids in grouped.values():
+            if len(ids) < 2:
+                continue
+            ids_sorted = sorted(ids)
+            for i in range(len(ids_sorted) - 1):
+                pairs.append((ids_sorted[i], ids_sorted[i + 1]))
+        return pairs
+
+    @staticmethod
+    def _core_stack_base(spec) -> str:
+        sid = str(spec.space_id).lower()
+        for tok in ("_f", "-f", "_l", "-l", "_level", "-level"):
+            idx = sid.find(tok)
+            if idx > 0:
+                return sid[:idx]
+        return sid

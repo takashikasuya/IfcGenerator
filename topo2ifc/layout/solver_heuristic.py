@@ -244,7 +244,7 @@ class HeuristicSolver(LayoutSolverBase):
 
         rect_map = {r.space_id: r for r in rects}
 
-        best_score = self._adjacency_score(rect_map, desired)
+        best_score = self._combined_score(topo, rect_map, desired)
 
         for _ in range(self.config.max_iter):
             if len(rects) < 2:
@@ -258,7 +258,7 @@ class HeuristicSolver(LayoutSolverBase):
             rect_map[ri.space_id] = ri_new
             rect_map[rj.space_id] = rj_new
 
-            score = self._adjacency_score(rect_map, desired)
+            score = self._combined_score(topo, rect_map, desired)
             if score >= best_score and not _has_overlaps(list(rect_map.values())):
                 rects[i] = ri_new
                 rects[j] = rj_new
@@ -270,6 +270,107 @@ class HeuristicSolver(LayoutSolverBase):
 
         logger.debug("Hill-climbing final adjacency score: %.3f", best_score)
         return rects
+
+    def _combined_score(
+        self,
+        topo: TopologyGraph,
+        rect_map: dict[str, LayoutRect],
+        desired: set[tuple[str, str]],
+    ) -> float:
+        """Return weighted score that includes adjacency and circulation quality."""
+        adjacency = self._adjacency_score(rect_map, desired)
+        circulation = self._circulation_score(topo, rect_map)
+        return adjacency + 0.2 * circulation
+
+    def _circulation_score(
+        self,
+        topo: TopologyGraph,
+        rect_map: dict[str, LayoutRect],
+    ) -> float:
+        """Score stair/elevator placement quality.
+
+        - Stairs: reward proximity to corridor spaces and penalize dead-end neighbors.
+        - Elevators: reward central placement based on weighted travel distance.
+        """
+        if not rect_map:
+            return 0.0
+
+        spaces = {s.space_id: s for s in topo.spaces}
+        stair_ids = [sid for sid in rect_map if sid in spaces and self._core_type(spaces[sid]) == "stair"]
+        elevator_ids = [sid for sid in rect_map if sid in spaces and self._core_type(spaces[sid]) == "elevator"]
+        corridor_ids = [
+            sid for sid in rect_map if sid in spaces and spaces[sid].space_category == SpaceCategory.CORRIDOR
+        ]
+
+        score = 0.0
+        if stair_ids:
+            score += self._stair_score(topo, rect_map, spaces, stair_ids, corridor_ids)
+        if elevator_ids:
+            score += self._elevator_score(rect_map, spaces, elevator_ids)
+        return score
+
+    def _stair_score(
+        self,
+        topo: TopologyGraph,
+        rect_map: dict[str, LayoutRect],
+        spaces,
+        stair_ids: list[str],
+        corridor_ids: list[str],
+    ) -> float:
+        score = 0.0
+        for stair_id in stair_ids:
+            stair_rect = rect_map[stair_id]
+            if corridor_ids:
+                nearest_corridor = min(
+                    self._rect_distance(stair_rect, rect_map[cid]) for cid in corridor_ids
+                )
+                score += 1.0 / (1.0 + nearest_corridor)
+
+            dead_end_neighbors = 0
+            for nid in topo.neighbors(stair_id):
+                neighbor = spaces.get(nid)
+                if neighbor is None:
+                    continue
+                is_dead_end = len(list(topo.neighbors(nid))) <= 1
+                is_corridor = neighbor.space_category == SpaceCategory.CORRIDOR
+                is_core = self._is_vertical_core(neighbor)
+                if is_dead_end and not is_corridor and not is_core:
+                    dead_end_neighbors += 1
+
+            score -= 0.25 * dead_end_neighbors
+        return score
+
+    def _elevator_score(
+        self,
+        rect_map: dict[str, LayoutRect],
+        spaces,
+        elevator_ids: list[str],
+    ) -> float:
+        candidates = [
+            sid
+            for sid, spec in spaces.items()
+            if sid in rect_map and not self._is_vertical_core(spec)
+        ]
+        if not candidates:
+            return 0.0
+
+        total_weight = 0.0
+        weighted_distance = 0.0
+        for sid in candidates:
+            target = rect_map[sid]
+            weight = max(1.0, spaces[sid].effective_area_target)
+            dist = min(
+                self._rect_distance(target, rect_map[eid])
+                for eid in elevator_ids
+            )
+            weighted_distance += weight * dist
+            total_weight += weight
+
+        if total_weight <= 0.0:
+            return 0.0
+
+        avg_distance = weighted_distance / total_weight
+        return 1.0 / (1.0 + avg_distance)
 
     # ------------------------------------------------------------------ #
     # Scoring
@@ -294,6 +395,19 @@ class HeuristicSolver(LayoutSolverBase):
                 satisfied += 1
 
         return satisfied / len(desired)
+
+    @staticmethod
+    def _core_type(spec) -> str:
+        text = f"{spec.space_id} {spec.name}".lower()
+        if "stair" in text:
+            return "stair"
+        if "elevator" in text or "lift" in text:
+            return "elevator"
+        return "core"
+
+    @staticmethod
+    def _rect_distance(a: LayoutRect, b: LayoutRect) -> float:
+        return math.hypot(a.cx - b.cx, a.cy - b.cy)
 
 
 # --------------------------------------------------------------------------- #

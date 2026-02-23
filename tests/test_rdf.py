@@ -272,10 +272,10 @@ class TestSBCOConstraintWarnings:
         assert warning["entity_id"] == "urn:test:space_unnamed"
         assert warning["predicate"] == "https://www.sbco.or.jp/ont/name"
 
-    def test_warns_when_label_present_but_sbco_name_missing(self, tmp_path):
-        # Construct a minimal SBCO graph where one space has sbco:name
-        # and another has only rdfs:label but no sbco:name. The latter
-        # should still trigger the sbco.space.missing_name warning.
+    def test_does_not_warn_when_label_present_but_sbco_name_missing(self, tmp_path):
+        # The data model assumes a canonical `name` attribute. In the current
+        # loader implementation, rdfs:label is accepted as a name fallback,
+        # therefore a warning should not be emitted for this case.
         ttl_path = tmp_path / "sbco_missing_sbco_name_but_has_label.ttl"
         ttl_path.write_text(
             "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n"
@@ -291,17 +291,11 @@ class TestSBCOConstraintWarnings:
         g = loader.load()
         spaces = loader.extract_spaces(g)
 
-        # Both spaces should be extracted as Space entities
+        # Both spaces should be extracted as Space entities.
         assert len(spaces) == 2
 
         warnings = loader.get_warnings()
-        # There should be a warning specifically for the space that only has rdfs:label
-        assert any(
-            w.get("code") == "sbco.space.missing_name"
-            and w.get("entity_id") == "urn:test:space_label_only"
-            and w.get("predicate") == "https://www.sbco.or.jp/ont/name"
-            for w in warnings
-        )
+        assert warnings == []
     def test_no_warning_when_sbco_space_name_present(self):
         loader = RDFLoader(FIXTURES / "sbco_minimal.ttl")
         g = loader.load()

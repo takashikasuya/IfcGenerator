@@ -158,16 +158,28 @@ class HeuristicSolver(LayoutSolverBase):
             return False
         return len(set(labels)) >= 2
 
-    def _split_core_groups(self, core_ids: list[str]) -> tuple[list[str], list[str]]:
-        left_group = [sid for sid in core_ids if self._core_side_label_from_id(sid) == "left"]
-        right_group = [sid for sid in core_ids if self._core_side_label_from_id(sid) == "right"]
+    def _split_core_groups(self, cores: list) -> tuple[list, list]:
+        """
+        Group cores into left/right buckets using the same side-label logic as
+        `_is_split_core_layout`. The input may be either spec-like objects
+        (with `space_id` and `name` attributes) or plain identifiers.
+        """
+        def _side_label_for_core(core) -> str:
+            # Prefer full spec-based labeling when attributes are available,
+            # fall back to ID-only labeling for backwards compatibility.
+            if hasattr(core, "space_id") and hasattr(core, "name"):
+                return self._core_side_label(core)
+            return self._core_side_label_from_id(str(core))
 
-        unlabeled = [sid for sid in core_ids if sid not in left_group and sid not in right_group]
-        for sid in unlabeled:
+        left_group = [core for core in cores if _side_label_for_core(core) == "left"]
+        right_group = [core for core in cores if _side_label_for_core(core) == "right"]
+
+        unlabeled = [core for core in cores if core not in left_group and core not in right_group]
+        for core in unlabeled:
             if len(left_group) <= len(right_group):
-                left_group.append(sid)
+                left_group.append(core)
             else:
-                right_group.append(sid)
+                right_group.append(core)
         return left_group, right_group
 
     def _core_side_label(self, spec) -> str:

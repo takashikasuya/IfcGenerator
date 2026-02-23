@@ -50,13 +50,13 @@ class HeuristicSolver(LayoutSolverBase):
         rects = preplaced + rects
         # Preserve the vertical anchoring of preplaced cores (typically y=0)
         # even if the hill-climb optimizer swaps their positions.
-        preplaced_heights = {id(r): (r.y2 - r.y1) for r in preplaced}
+        preplaced_heights = {id(r): r.height for r in preplaced}
         rects = self._hill_climb(topo, rects)
         for r in preplaced:
             height = preplaced_heights.get(id(r))
             if height is not None:
-                r.y1 = 0.0
-                r.y2 = height
+                r.y = 0.0
+                r.height = height
         return rects
 
     # ------------------------------------------------------------------ #

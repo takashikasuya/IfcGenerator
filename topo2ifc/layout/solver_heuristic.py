@@ -108,7 +108,8 @@ class HeuristicSolver(LayoutSolverBase):
             preplaced.append(LayoutRect(space_id=sid, x=round(x_cursor, 4), y=0.0, width=w, height=h))
             x_cursor += w
 
-        remaining = [sid for sid in order if sid not in set(core_ids)]
+        core_id_set = set(core_ids)
+        remaining = [sid for sid in order if sid not in core_id_set]
         return remaining, preplaced
 
     @staticmethod

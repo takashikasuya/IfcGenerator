@@ -11,11 +11,13 @@ def build_constraints_report(
     topology_errors: list[str],
     layout_errors: list[str],
     area_deviations: dict[str, float] | None = None,
+    topology_warnings: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     """Build a serialisable report dict."""
     return {
         "topology_errors": topology_errors,
         "layout_errors": layout_errors,
+        "topology_warnings": topology_warnings or [],
         "area_deviations": area_deviations or {},
         "ok": len(topology_errors) == 0 and len(layout_errors) == 0,
     }

@@ -114,8 +114,8 @@ AI agents must read this file before starting work and mark each task `[x]` when
 ## Phase 4 – Quality & CI
 
 ### 4-1 Improve validation reporting
-- [ ] Report SBCO constraint violations (e.g., a space missing `sbco:name`) as structured warnings rather than silent defaults.
-- [ ] Add unit tests for the new warning paths.
+- [x] Report SBCO constraint violations (e.g., a space missing `sbco:name`) as structured warnings rather than silent defaults.
+- [x] Add unit tests for the new warning paths.
 
 ### 4-2 Documentation
 - [x] Update `README.md` to add an SBCO-vocabulary example and link to the smartbuilding_ontology repository.
@@ -125,6 +125,10 @@ AI agents must read this file before starting work and mark each task `[x]` when
 
 ### 4-3 CI pipeline
 - [x] Add a GitHub Actions workflow (`.github/workflows/ci.yml`) that runs `pytest tests/` on every push and pull request.
+
+### 4-4 Point export performance/placement fixes
+- [x] Build and reuse `spaces_by_id` for equipment/point storey resolution to avoid repeated linear scans.
+- [x] Derive point placement from parent equipment/storey context so Z is consistent and points do not collapse to a single fixed origin.
 
 ## Phase 5 – IFC property enrichment for HVAC integration
 

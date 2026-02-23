@@ -254,3 +254,56 @@ class TestSingleStoreyMode:
         assert len({s.storey_id for s in kept_spaces if s.storey_id}) == 1
         assert all(e.space_a in {s.space_id for s in kept_spaces} and e.space_b in {s.space_id for s in kept_spaces} for e in kept_adj)
         assert all(e.space_a in {s.space_id for s in kept_spaces} and e.space_b in {s.space_id for s in kept_spaces} for e in kept_conn)
+
+
+class TestSBCOConstraintWarnings:
+    def test_warns_when_sbco_space_name_missing(self):
+        loader = RDFLoader(FIXTURES / "sbco_missing_name.ttl")
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+
+        assert len(spaces) == 2
+
+        warnings = loader.get_warnings()
+        assert len(warnings) == 1
+        warning = warnings[0]
+        assert warning["code"] == "sbco.space.missing_name"
+        assert warning["severity"] == "warning"
+        assert warning["entity_id"] == "urn:test:space_unnamed"
+        assert warning["predicate"] == "https://www.sbco.or.jp/ont/name"
+
+    def test_warns_when_label_present_but_sbco_name_missing(self, tmp_path):
+        # Construct a minimal SBCO graph where one space has sbco:name
+        # and another has only rdfs:label but no sbco:name. The latter
+        # should still trigger the sbco.space.missing_name warning.
+        ttl_path = tmp_path / "sbco_missing_sbco_name_but_has_label.ttl"
+        ttl_path.write_text(
+            "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n"
+            "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n"
+            "@prefix sbco: <https://www.sbco.or.jp/ont/> .\n"
+            "<urn:test:space_with_name> a sbco:Space ;\n"
+            '    sbco:name "Named space" .\n'
+            "<urn:test:space_label_only> a sbco:Space ;\n"
+            '    rdfs:label "Label only space" .\n'
+        )
+
+        loader = RDFLoader(ttl_path)
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+
+        # Both spaces should be extracted as Space entities
+        assert len(spaces) == 2
+
+        warnings = loader.get_warnings()
+        # There should be a warning specifically for the space that only has rdfs:label
+        assert any(
+            w.get("code") == "sbco.space.missing_name"
+            and w.get("entity_id") == "urn:test:space_label_only"
+            and w.get("predicate") == "https://www.sbco.or.jp/ont/name"
+            for w in warnings
+        )
+    def test_no_warning_when_sbco_space_name_present(self):
+        loader = RDFLoader(FIXTURES / "sbco_minimal.ttl")
+        g = loader.load()
+        loader.extract_spaces(g)
+        assert loader.get_warnings() == []

@@ -111,6 +111,18 @@ class TopologyGraph:
                 order.append(node)
         return order
 
+
+    def degree(self, space_id: str) -> int:
+        return int(self._g.degree(space_id))
+
+    def shortest_path_length(self, source: str, target: str) -> int | None:
+        try:
+            return int(nx.shortest_path_length(self._g, source=source, target=target))
+        except nx.NetworkXNoPath:
+            return None
+
+    def space_ids(self) -> list[str]:
+        return list(self._g.nodes)
     def __len__(self) -> int:
         return len(self._g.nodes)
 

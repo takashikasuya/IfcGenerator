@@ -96,21 +96,107 @@ class HeuristicSolver(LayoutSolverBase):
             return order, []
 
         grid = self.config.grid_unit
+        core_specs = [topo.get_space(sid) for sid in core_ids]
         core_ids.sort(key=lambda sid: self._core_group_key(topo.get_space(sid)))
+
+        split_core_mode = self._is_split_core_layout(core_specs)
+        left_group: list[str] = []
+        right_group: list[str] = []
+        if split_core_mode:
+            left_group, right_group = self._split_core_groups(core_ids)
+            ordered_groups = left_group + right_group
+        else:
+            ordered_groups = core_ids
 
         preplaced: list[LayoutRect] = []
         x_cursor = 0.0
-        for sid in core_ids:
+        core_dims: dict[str, tuple[float, float]] = {}
+        for sid in ordered_groups:
             area = topo.get_space(sid).effective_area_target
             w, h = self._initial_dims(area)
             w = max(grid, round(w / grid) * grid)
             h = max(grid, round(h / grid) * grid)
-            preplaced.append(LayoutRect(space_id=sid, x=round(x_cursor, 4), y=0.0, width=w, height=h))
-            x_cursor += w
+            core_dims[sid] = (w, h)
+
+        if split_core_mode and left_group and right_group:
+            left_width = sum(core_dims[sid][0] for sid in left_group)
+            right_width = sum(core_dims[sid][0] for sid in right_group)
+            gap = max(2.0 * grid, 0.5 * (left_width + right_width))
+
+            for sid in left_group:
+                w, h = core_dims[sid]
+                preplaced.append(LayoutRect(space_id=sid, x=round(x_cursor, 4), y=0.0, width=w, height=h))
+                x_cursor += w
+
+            x_cursor += gap
+
+            for sid in right_group:
+                w, h = core_dims[sid]
+                preplaced.append(LayoutRect(space_id=sid, x=round(x_cursor, 4), y=0.0, width=w, height=h))
+                x_cursor += w
+        else:
+            for sid in ordered_groups:
+                w, h = core_dims[sid]
+                preplaced.append(LayoutRect(space_id=sid, x=round(x_cursor, 4), y=0.0, width=w, height=h))
+                x_cursor += w
+
+        if split_core_mode:
+            preplaced.sort(key=lambda r: r.x)
+
+        for rect in preplaced:
+            # normalize tiny negative zeros from rounding
+            if abs(rect.x) < 1e-9:
+                rect.x = 0.0
 
         core_id_set = set(core_ids)
         remaining = [sid for sid in order if sid not in core_id_set]
         return remaining, preplaced
+
+    def _is_split_core_layout(self, core_specs: list) -> bool:
+        labels = [self._core_side_label(spec) for spec in core_specs]
+        # Only consider explicitly side-labeled cores ("left"/"right") when
+        # determining if this is a split-core layout; ignore "center" cores.
+        side_labels = [label for label in labels if label in ("left", "right")]
+        if len(side_labels) < 2:
+            return False
+        # Treat as split-core only if we have cores on both sides.
+        return len(set(side_labels)) >= 2
+
+    def _split_core_groups(self, cores: list) -> tuple[list, list]:
+        """
+        Group cores into left/right buckets using the same side-label logic as
+        `_is_split_core_layout`. The input may be either spec-like objects
+        (with `space_id` and `name` attributes) or plain identifiers.
+        """
+        def _side_label_for_core(core) -> str:
+            # Prefer full spec-based labeling when attributes are available,
+            # fall back to ID-only labeling for backwards compatibility.
+            if hasattr(core, "space_id") and hasattr(core, "name"):
+                return self._core_side_label(core)
+            return self._core_side_label_from_id(str(core))
+
+        left_group = [core for core in cores if _side_label_for_core(core) == "left"]
+        right_group = [core for core in cores if _side_label_for_core(core) == "right"]
+
+        unlabeled = [core for core in cores if core not in left_group and core not in right_group]
+        for core in unlabeled:
+            if len(left_group) <= len(right_group):
+                left_group.append(core)
+            else:
+                right_group.append(core)
+        return left_group, right_group
+
+    def _core_side_label(self, spec) -> str:
+        return self._core_side_label_from_id(f"{spec.space_id} {spec.name}")
+
+    @staticmethod
+    def _core_side_label_from_id(text: str) -> str:
+        lowered = text.lower()
+        if any(tok in lowered for tok in ("west", "left", "core_a", "a_core", "north")):
+            return "left"
+        if any(tok in lowered for tok in ("east", "right", "core_b", "b_core", "south")):
+            return "right"
+        return "center"
 
     @staticmethod
     def _is_vertical_core(spec) -> bool:

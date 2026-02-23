@@ -565,7 +565,24 @@ class IfcExporter:
             for _, spec in items:
                 if spec.storey_elevation is None:
                     continue
-                openings[round(spec.storey_elevation, 3)] = open_rect
+                elev_key = round(spec.storey_elevation, 3)
+                existing = openings.get(elev_key)
+                if existing is None:
+                    openings[elev_key] = open_rect
+                else:
+                    # Merge multiple shaft openings at the same elevation into a single
+                    # bounding-box opening to avoid silently overwriting earlier ones.
+                    x_min = min(existing.x, open_rect.x)
+                    y_min = min(existing.y, open_rect.y)
+                    x2_max = max(existing.x2, open_rect.x2)
+                    y2_max = max(existing.y2, open_rect.y2)
+                    openings[elev_key] = LayoutRect(
+                        space_id="__shaft_opening__",
+                        x=x_min,
+                        y=y_min,
+                        width=x2_max - x_min,
+                        height=y2_max - y_min,
+                    )
         return openings
 
     def _create_vertical_circulation_element(self, core_type: str, spec: SpaceSpec, rect: LayoutRect, body_ctx):

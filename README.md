@@ -104,3 +104,4 @@ pytest tests/
 ### ドキュメント
 
 - 実行フローの詳細: [docs/runtime-walkthrough.md](docs/runtime-walkthrough.md)
+- 複数階レイアウト戦略: [docs/multi-storey-layout-strategy.md](docs/multi-storey-layout-strategy.md)

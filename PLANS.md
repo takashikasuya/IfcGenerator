@@ -145,7 +145,7 @@ AI agents must read this file before starting work and mark each task `[x]` when
 ## Phase 6 – Multi-storey layout algorithm redesign
 
 ### 6-1 Formalize floor-wise zoning and vertical-core constraints
-- [ ] Define a two-stage solve strategy that preserves current single-storey quality while extending to multi-storey: (1) per-floor 2D solve, (2) vertical core alignment solve.
+- [x] Define a two-stage solve strategy that preserves current single-storey quality while extending to multi-storey: (1) per-floor 2D solve, (2) vertical core alignment solve.
 - [ ] Introduce explicit `VerticalCoreSpec` / `CirculationSpec` requirements in topology extraction for stairs and elevators.
 - [ ] Add topology validation rules that enforce stair presence for `storey_count >= 2` and elevator presence for configurable high-rise thresholds.
 

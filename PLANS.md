@@ -123,6 +123,9 @@ AI agents must read this file before starting work and mark each task `[x]` when
 - [x] Add a step-by-step runtime behavior document under `docs/` and link it from `README.md`.
 - [x] Expand runtime documentation with a per-solver explanation (`heuristic` / `ortools`) and solver selection guidance.
 
+### 4-5 Align SBCO warning tests with data model name assumption
+- [x] Reconsider SBCO missing-name test cases under the premise that the data model assumes a `name` attribute.
+
 ### 4-3 CI pipeline
 - [x] Add a GitHub Actions workflow (`.github/workflows/ci.yml`) that runs `pytest tests/` on every push and pull request.
 

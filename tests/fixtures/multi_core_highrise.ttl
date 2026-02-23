@@ -1,0 +1,38 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix bot:  <https://w3id.org/bot#> .
+@prefix sbco: <https://www.sbco.or.jp/ont/> .
+@prefix topo: <https://topo2ifc.example.org/ont#> .
+@prefix ex:   <https://example.com/> .
+
+ex:bldg a bot:Building ; bot:hasStorey ex:l1, ex:l2, ex:l3, ex:l4, ex:l5, ex:l6 .
+
+# Two split cores across six storeys
+ex:l1 a bot:Storey ; topo:elevation "0.0"^^xsd:float ; bot:hasSpace ex:office_l1, ex:stair_west_l1, ex:elevator_east_l1 .
+ex:l2 a bot:Storey ; topo:elevation "3.0"^^xsd:float ; bot:hasSpace ex:office_l2, ex:stair_west_l2, ex:elevator_east_l2 .
+ex:l3 a bot:Storey ; topo:elevation "6.0"^^xsd:float ; bot:hasSpace ex:office_l3, ex:stair_west_l3, ex:elevator_east_l3 .
+ex:l4 a bot:Storey ; topo:elevation "9.0"^^xsd:float ; bot:hasSpace ex:office_l4, ex:stair_west_l4, ex:elevator_east_l4 .
+ex:l5 a bot:Storey ; topo:elevation "12.0"^^xsd:float ; bot:hasSpace ex:office_l5, ex:stair_west_l5, ex:elevator_east_l5 .
+ex:l6 a bot:Storey ; topo:elevation "15.0"^^xsd:float ; bot:hasSpace ex:office_l6, ex:stair_west_l6, ex:elevator_east_l6 .
+
+ex:office_l1 a bot:Space ; topo:areaTarget "25.0"^^xsd:float ; bot:isSpaceOf ex:l1 .
+ex:office_l2 a bot:Space ; topo:areaTarget "25.0"^^xsd:float ; bot:isSpaceOf ex:l2 .
+ex:office_l3 a bot:Space ; topo:areaTarget "25.0"^^xsd:float ; bot:isSpaceOf ex:l3 .
+ex:office_l4 a bot:Space ; topo:areaTarget "25.0"^^xsd:float ; bot:isSpaceOf ex:l4 .
+ex:office_l5 a bot:Space ; topo:areaTarget "25.0"^^xsd:float ; bot:isSpaceOf ex:l5 .
+ex:office_l6 a bot:Space ; topo:areaTarget "25.0"^^xsd:float ; bot:isSpaceOf ex:l6 .
+
+ex:stair_west_l1 a bot:Space ; rdfs:label "West Stair" ; topo:category "core" ; topo:areaTarget "9.0"^^xsd:float ; bot:isSpaceOf ex:l1 .
+ex:stair_west_l2 a bot:Space ; rdfs:label "West Stair" ; topo:category "core" ; topo:areaTarget "9.0"^^xsd:float ; bot:isSpaceOf ex:l2 .
+ex:stair_west_l3 a bot:Space ; rdfs:label "West Stair" ; topo:category "core" ; topo:areaTarget "9.0"^^xsd:float ; bot:isSpaceOf ex:l3 .
+ex:stair_west_l4 a bot:Space ; rdfs:label "West Stair" ; topo:category "core" ; topo:areaTarget "9.0"^^xsd:float ; bot:isSpaceOf ex:l4 .
+ex:stair_west_l5 a bot:Space ; rdfs:label "West Stair" ; topo:category "core" ; topo:areaTarget "9.0"^^xsd:float ; bot:isSpaceOf ex:l5 .
+ex:stair_west_l6 a bot:Space ; rdfs:label "West Stair" ; topo:category "core" ; topo:areaTarget "9.0"^^xsd:float ; bot:isSpaceOf ex:l6 .
+
+ex:elevator_east_l1 a bot:Space ; rdfs:label "East Elevator" ; topo:category "core" ; topo:areaTarget "6.0"^^xsd:float ; bot:isSpaceOf ex:l1 .
+ex:elevator_east_l2 a bot:Space ; rdfs:label "East Elevator" ; topo:category "core" ; topo:areaTarget "6.0"^^xsd:float ; bot:isSpaceOf ex:l2 .
+ex:elevator_east_l3 a bot:Space ; rdfs:label "East Elevator" ; topo:category "core" ; topo:areaTarget "6.0"^^xsd:float ; bot:isSpaceOf ex:l3 .
+ex:elevator_east_l4 a bot:Space ; rdfs:label "East Elevator" ; topo:category "core" ; topo:areaTarget "6.0"^^xsd:float ; bot:isSpaceOf ex:l4 .
+ex:elevator_east_l5 a bot:Space ; rdfs:label "East Elevator" ; topo:category "core" ; topo:areaTarget "6.0"^^xsd:float ; bot:isSpaceOf ex:l5 .
+ex:elevator_east_l6 a bot:Space ; rdfs:label "East Elevator" ; topo:category "core" ; topo:areaTarget "6.0"^^xsd:float ; bot:isSpaceOf ex:l6 .

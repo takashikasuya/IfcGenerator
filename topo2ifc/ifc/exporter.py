@@ -33,6 +33,7 @@ from topo2ifc.geometry.walls import WallSegment
 from topo2ifc.ifc.ifc_context import add_storey, create_ifc_model
 from topo2ifc.ifc.psets import add_equipment_pset, add_material_thermal_pset, add_point_pset, add_space_pset
 from topo2ifc.topology.model import EquipmentSpec, LayoutRect, PointSpec, SpaceSpec
+from topo2ifc.validate.checks import validate_shaft_openings
 
 logger = logging.getLogger(__name__)
 
@@ -165,8 +166,10 @@ class IfcExporter:
             )
 
         # ---- Slabs --------------------------------------------------- #
+        slab_by_elevation: dict[float, object] = {}
         for slab in slabs:
             ifc_slab = self._create_slab(slab, body_ctx)
+            slab_by_elevation[round(slab.elevation, 3)] = ifc_slab
             # Assign slab to the storey matching its elevation
             ifcopenshell.api.run(
                 "spatial.assign_container",
@@ -174,6 +177,41 @@ class IfcExporter:
                 products=[ifc_slab],
                 relating_structure=_get_storey_by_elevation(slab.elevation),
             )
+
+        # ---- Vertical circulation openings/elements ------------------ #
+        if self.cfg.solver.multi_storey_mode:
+            core_rects = self._collect_vertical_core_rects(spaces, rect_by_id)
+            for core_type, _, rect, spec in core_rects:
+                ifc_elem = self._create_vertical_circulation_element(core_type, spec, rect, body_ctx)
+                ifcopenshell.api.run(
+                    "spatial.assign_container",
+                    ifc,
+                    products=[ifc_elem],
+                    relating_structure=_get_storey(spec),
+                )
+
+            opening_map = self._shaft_openings_from_core_rects(core_rects)
+            opening_errors = validate_shaft_openings(opening_map)
+            if opening_errors:
+                raise RuntimeError("Invalid shaft openings: " + "; ".join(opening_errors))
+
+            for opening_elev, opening_rect in opening_map.items():
+                ifc_slab = slab_by_elevation.get(round(opening_elev, 3))
+                if ifc_slab is None:
+                    continue
+                ifc_opening = self._create_opening_element(opening_rect, opening_elev, body_ctx)
+                ifcopenshell.api.run(
+                    "spatial.assign_container",
+                    ifc,
+                    products=[ifc_opening],
+                    relating_structure=_get_storey_by_elevation(opening_elev),
+                )
+                ifcopenshell.api.run(
+                    "feature.add_feature",
+                    ifc,
+                    feature=ifc_opening,
+                    element=ifc_slab,
+                )
 
         # ---- Walls --------------------------------------------------- #
         for wall in walls:
@@ -446,6 +484,109 @@ class IfcExporter:
             specific_heat_capacity=self.cfg.material_thermal.door.specific_heat_capacity,
         )
         return entity
+
+    def _collect_vertical_core_rects(
+        self,
+        spaces: list[SpaceSpec],
+        rect_by_id: dict[str, LayoutRect],
+    ) -> list[tuple[str, str, LayoutRect, SpaceSpec]]:
+        results: list[tuple[str, str, LayoutRect, SpaceSpec]] = []
+        for spec in spaces:
+            rect = rect_by_id.get(spec.space_id)
+            if rect is None:
+                continue
+            ctype = self._core_type(spec)
+            if ctype not in {"stair", "elevator"}:
+                continue
+            base = self._core_base_id(spec.space_id)
+            results.append((ctype, base, rect, spec))
+        return results
+
+    def _shaft_openings_from_core_rects(
+        self,
+        core_rects: list[tuple[str, str, LayoutRect, SpaceSpec]],
+    ) -> dict[float, LayoutRect]:
+        grouped: dict[str, list[tuple[LayoutRect, SpaceSpec]]] = {}
+        for _, base, rect, spec in core_rects:
+            grouped.setdefault(base, []).append((rect, spec))
+
+        openings: dict[float, LayoutRect] = {}
+        for _, items in grouped.items():
+            if len(items) < 2:
+                continue
+            xs = [r.x for r, _ in items]
+            ys = [r.y for r, _ in items]
+            x2s = [r.x2 for r, _ in items]
+            y2s = [r.y2 for r, _ in items]
+            open_rect = LayoutRect(
+                space_id="__shaft_opening__",
+                x=max(xs),
+                y=max(ys),
+                width=max(0.3, min(x2s) - max(xs)),
+                height=max(0.3, min(y2s) - max(ys)),
+            )
+            for _, spec in items:
+                if spec.storey_elevation is None:
+                    continue
+                openings[round(spec.storey_elevation, 3)] = open_rect
+        return openings
+
+    def _create_vertical_circulation_element(self, core_type: str, spec: SpaceSpec, rect: LayoutRect, body_ctx):
+        ifc = self.ifc
+        ifc_class = "IfcStair" if core_type == "stair" else "IfcTransportElement"
+        entity = ifcopenshell.api.run(
+            "root.create_entity",
+            ifc,
+            ifc_class=ifc_class,
+            name=spec.name or spec.space_id,
+        )
+        height = spec.height or self.geo.wall_height
+        shape = self._extruded_rect_shape(0.0, 0.0, rect.width, rect.height, height, body_ctx)
+        ifcopenshell.api.run(
+            "geometry.assign_representation",
+            ifc,
+            product=entity,
+            representation=shape,
+        )
+        entity.ObjectPlacement = self._local_placement(rect.x, rect.y, spec.storey_elevation or 0.0)
+        return entity
+
+    def _create_opening_element(self, rect: LayoutRect, elevation: float, body_ctx):
+        ifc = self.ifc
+        entity = ifcopenshell.api.run(
+            "root.create_entity",
+            ifc,
+            ifc_class="IfcOpeningElement",
+            name=f"Opening_{elevation:.3f}",
+        )
+        depth = max(0.1, self.geo.slab_thickness)
+        shape = self._extruded_rect_shape(0.0, 0.0, rect.width, rect.height, depth, body_ctx)
+        ifcopenshell.api.run(
+            "geometry.assign_representation",
+            ifc,
+            product=entity,
+            representation=shape,
+        )
+        entity.ObjectPlacement = self._local_placement(rect.x, rect.y, elevation - depth)
+        return entity
+
+    @staticmethod
+    def _core_type(spec: SpaceSpec) -> str:
+        text = f"{spec.space_id} {spec.name}".lower()
+        if "stair" in text:
+            return "stair"
+        if "elevator" in text or "lift" in text:
+            return "elevator"
+        return "other"
+
+    @staticmethod
+    def _core_base_id(space_id: str) -> str:
+        sid = space_id.lower()
+        for tok in ("_f", "-f", "_l", "-l", "_level", "-level"):
+            idx = sid.find(tok)
+            if idx > 0:
+                return sid[:idx]
+        return sid
 
     # ------------------------------------------------------------------ #
     # Geometry helpers

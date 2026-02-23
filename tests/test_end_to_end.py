@@ -886,3 +886,78 @@ class TestEquipmentExport:
             assert pset["ThermalConductivity"] == pytest.approx(expected.thermal_conductivity)
             assert pset["Density"] == pytest.approx(expected.density)
             assert pset["SpecificHeatCapacity"] == pytest.approx(expected.specific_heat_capacity)
+
+
+class TestVerticalCirculationExport:
+    def test_exports_stairs_and_openings_for_two_storey_fixture(self, tmp_path):
+        import ifcopenshell
+
+        from topo2ifc.config import Config
+        from topo2ifc.geometry.doors import extract_doors
+        from topo2ifc.geometry.slabs import extract_slabs
+        from topo2ifc.geometry.walls import extract_walls
+        from topo2ifc.ifc.exporter import IfcExporter
+        from topo2ifc.layout.postprocess import snap_to_grid, to_shapely_polygons
+        from topo2ifc.layout.solver_heuristic import HeuristicSolver
+        from topo2ifc.rdf.loader import RDFLoader
+        from topo2ifc.topology.graph import TopologyGraph
+
+        loader = RDFLoader(FIXTURES / "two_storey_with_stair.ttl")
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+        topo = TopologyGraph.from_parts(spaces, loader.extract_adjacencies(g), loader.extract_connections(g))
+        rects = snap_to_grid(HeuristicSolver().solve(topo))
+        polygons = to_shapely_polygons(rects)
+        elevations = {sp.space_id: (sp.storey_elevation or 0.0) for sp in spaces}
+
+        cfg = Config.default()
+        cfg.solver.multi_storey_mode = True
+        out = tmp_path / "stairs_openings.ifc"
+        IfcExporter(cfg).export(
+            spaces,
+            rects,
+            extract_walls(polygons, space_elevations=elevations),
+            extract_slabs(polygons, space_elevations=elevations),
+            extract_doors(polygons, topo.connected_pairs(), space_elevations=elevations),
+            out,
+        )
+
+        ifc = ifcopenshell.open(str(out))
+        assert len(ifc.by_type("IfcStair")) >= 1
+        assert len(ifc.by_type("IfcOpeningElement")) >= 1
+
+    def test_exports_transport_elements_for_elevator_fixture(self, tmp_path):
+        import ifcopenshell
+
+        from topo2ifc.config import Config
+        from topo2ifc.geometry.doors import extract_doors
+        from topo2ifc.geometry.slabs import extract_slabs
+        from topo2ifc.geometry.walls import extract_walls
+        from topo2ifc.ifc.exporter import IfcExporter
+        from topo2ifc.layout.postprocess import snap_to_grid, to_shapely_polygons
+        from topo2ifc.layout.solver_heuristic import HeuristicSolver
+        from topo2ifc.rdf.loader import RDFLoader
+        from topo2ifc.topology.graph import TopologyGraph
+
+        loader = RDFLoader(FIXTURES / "six_storey_with_elevator.ttl")
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+        topo = TopologyGraph.from_parts(spaces, loader.extract_adjacencies(g), loader.extract_connections(g))
+        rects = snap_to_grid(HeuristicSolver().solve(topo))
+        polygons = to_shapely_polygons(rects)
+        elevations = {sp.space_id: (sp.storey_elevation or 0.0) for sp in spaces}
+
+        cfg = Config.default()
+        cfg.solver.multi_storey_mode = True
+        out = tmp_path / "elevators.ifc"
+        IfcExporter(cfg).export(
+            spaces,
+            rects,
+            extract_walls(polygons, space_elevations=elevations),
+            extract_slabs(polygons, space_elevations=elevations),
+            extract_doors(polygons, topo.connected_pairs(), space_elevations=elevations),
+            out,
+        )
+
+        ifc = ifcopenshell.open(str(out))
+        assert len(ifc.by_type("IfcTransportElement")) >= 1

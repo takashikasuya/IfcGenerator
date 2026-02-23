@@ -1,0 +1,20 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix bot:  <https://w3id.org/bot#> .
+@prefix sbco: <https://www.sbco.or.jp/ont/> .
+@prefix topo: <https://topo2ifc.example.org/ont#> .
+@prefix ex:   <https://example.com/> .
+
+ex:bldg a bot:Building ; bot:hasStorey ex:l1, ex:l2 .
+ex:l1 a bot:Storey ; rdfs:label "L1" ; topo:elevation "0.0"^^xsd:float ; bot:hasSpace ex:office_l1, ex:stair_core_l1 .
+ex:l2 a bot:Storey ; rdfs:label "L2" ; topo:elevation "3.0"^^xsd:float ; bot:hasSpace ex:office_l2, ex:stair_core_l2 .
+
+ex:office_l1 a bot:Space ; rdfs:label "Office L1" ; topo:areaTarget "25.0"^^xsd:float ; bot:isSpaceOf ex:l1 .
+ex:office_l2 a bot:Space ; rdfs:label "Office L2" ; topo:areaTarget "25.0"^^xsd:float ; bot:isSpaceOf ex:l2 .
+
+ex:stair_core_l1 a bot:Space ; rdfs:label "Main Stair" ; topo:category "core" ; topo:areaTarget "9.0"^^xsd:float ; bot:isSpaceOf ex:l1 .
+ex:stair_core_l2 a bot:Space ; rdfs:label "Main Stair" ; topo:category "core" ; topo:areaTarget "9.0"^^xsd:float ; bot:isSpaceOf ex:l2 .
+
+ex:stair1 a sbco:Stair ; sbco:name "Main Stair" ; sbco:locatedIn ex:stair_core_l1 .
+ex:stair2 a sbco:Stair ; sbco:name "Main Stair" ; sbco:locatedIn ex:stair_core_l2 .

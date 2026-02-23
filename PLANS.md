@@ -155,16 +155,16 @@ AI agents must read this file before starting work and mark each task `[x]` when
 - [x] Add conflict resolution for multiple cores (e.g., split-core buildings) with fallback to OR-Tools objective penalties.
 
 ### 6-3 Extend OR-Tools model for stacked-floor optimization
-- [ ] Add decision variables tying core XY positions across storeys (stacking constraints) while keeping existing non-overlap/adjacency constraints per floor.
-- [ ] Add objective terms for vertical circulation efficiency (stairs path length, elevator service radius, queue-risk proxy via served area).
-- [ ] Keep backward compatibility by gating all new terms behind `SolverConfig.multi_storey_mode` and ensuring single-storey objective behavior is unchanged.
+- [x] Add decision variables tying core XY positions across storeys (stacking constraints) while keeping existing non-overlap/adjacency constraints per floor.
+- [x] Add objective terms for vertical circulation efficiency (stairs path length, elevator service radius, queue-risk proxy via served area).
+- [x] Keep backward compatibility by gating all new terms behind `SolverConfig.multi_storey_mode` and ensuring single-storey objective behavior is unchanged.
 
 ### 6-4 Geometry and IFC integration for vertical circulation
-- [ ] Extend geometry generation to create aligned openings/voids for stair and elevator shafts through slabs.
-- [ ] Export stairs (`IfcStair`) and elevators (`IfcTransportElement` or proxy fallback) tied to corresponding `IfcBuildingStorey` relations.
-- [ ] Add validation ensuring shaft solids and slab openings remain consistent across storeys.
+- [x] Extend geometry generation to create aligned openings/voids for stair and elevator shafts through slabs.
+- [x] Export stairs (`IfcStair`) and elevators (`IfcTransportElement` or proxy fallback) tied to corresponding `IfcBuildingStorey` relations.
+- [x] Add validation ensuring shaft solids and slab openings remain consistent across storeys.
 
 ### 6-5 Verification, fixtures, and rollout safety
-- [ ] Add fixtures for `2-storey-with-stair`, `6-storey-with-elevator`, and `multi-core-highrise` scenarios.
-- [ ] Add regression tests proving existing single-storey layouts are unchanged (golden bbox/similarity checks).
-- [ ] Add performance benchmarks and acceptance criteria (solve time, overlap violations, circulation coverage) and document rollout gates.
+- [x] Add fixtures for `2-storey-with-stair`, `6-storey-with-elevator`, and `multi-core-highrise` scenarios.
+- [x] Add regression tests proving existing single-storey layouts are unchanged (golden bbox/similarity checks).
+- [x] Add performance benchmarks and acceptance criteria (solve time, overlap violations, circulation coverage) and document rollout gates.

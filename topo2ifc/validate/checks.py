@@ -84,3 +84,26 @@ def validate_layout(
             )
 
     return errors
+
+
+def validate_shaft_openings(
+    openings_by_elevation: dict[float, LayoutRect],
+) -> list[str]:
+    """Validate generated shaft openings before IFC export."""
+    errors: list[str] = []
+    if not openings_by_elevation:
+        return errors
+
+    for elev, rect in openings_by_elevation.items():
+        if rect.width <= 0 or rect.height <= 0:
+            errors.append(f"Shaft opening at elevation {elev:.3f} has non-positive dimensions.")
+
+    if len(openings_by_elevation) >= 2:
+        first = next(iter(openings_by_elevation.values()))
+        for elev, rect in openings_by_elevation.items():
+            if abs(rect.width - first.width) > 1e-6 or abs(rect.height - first.height) > 1e-6:
+                errors.append(
+                    f"Shaft opening size mismatch at elevation {elev:.3f}: "
+                    f"expected {first.width:.3f}x{first.height:.3f}, got {rect.width:.3f}x{rect.height:.3f}."
+                )
+    return errors

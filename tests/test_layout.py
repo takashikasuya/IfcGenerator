@@ -227,8 +227,21 @@ class TestHeuristicSolver:
         assert east_center > west_center
         assert (east_center - west_center) >= 0.45 * total_width
 
+    def test_single_storey_layout_stable_with_multi_storey_mode_flag(self):
+        topo = _make_topo()
+        base = HeuristicSolver(SolverConfig(seed=42, multi_storey_mode=False)).solve(topo)
+        flagged = HeuristicSolver(SolverConfig(seed=42, multi_storey_mode=True)).solve(topo)
+
+        base_map = {r.space_id: (r.x, r.y, r.width, r.height) for r in base}
+        flagged_map = {r.space_id: (r.x, r.y, r.width, r.height) for r in flagged}
+        assert base_map == flagged_map
+
 
 class TestOrtoolsSolver:
+    def test_solver_config_exposes_multi_storey_mode_flag(self):
+        cfg = SolverConfig()
+        assert cfg.multi_storey_mode is False
+
     def test_returns_rects_without_overlap(self):
         pytest.importorskip("ortools")
         from topo2ifc.layout.solver_ortools import OrtoolsSolver
@@ -273,6 +286,26 @@ class TestOrtoolsSolver:
             _core_type(topo.spaces[a].space_id) == _core_type(topo.spaces[b].space_id)
             for a, b in pairs
         )
+
+    def test_multi_storey_core_stack_pairs_group_same_core_across_levels(self):
+        pytest.importorskip("ortools")
+        from topo2ifc.layout.solver_ortools import OrtoolsSolver
+
+        topo = TopologyGraph()
+        topo.add_space(SpaceSpec("stair_core_f1", name="Stair Core", category="core", area_target=9.0, storey_id="L1"))
+        topo.add_space(SpaceSpec("stair_core_f2", name="Stair Core", category="core", area_target=9.0, storey_id="L2"))
+        topo.add_space(SpaceSpec("elevator_main_f1", name="Main Elevator", category="core", area_target=6.0, storey_id="L1"))
+        topo.add_space(SpaceSpec("elevator_main_f2", name="Main Elevator", category="core", area_target=6.0, storey_id="L2"))
+        topo.add_space(SpaceSpec("office_f1", category="office", area_target=25.0, storey_id="L1"))
+
+        solver = OrtoolsSolver(SolverConfig(seed=0, solver_time_limit_sec=3, multi_storey_mode=True))
+        pairs = solver._core_stack_pairs(topo.spaces)
+        id_to_index = {space.space_id: i for i, space in enumerate(topo.spaces)}
+
+        assert (id_to_index["stair_core_f1"], id_to_index["stair_core_f2"]) in pairs
+        assert (id_to_index["elevator_main_f1"], id_to_index["elevator_main_f2"]) in pairs
+        assert all("office" not in topo.spaces[a].space_id and "office" not in topo.spaces[b].space_id for a, b in pairs)
+
 class TestRectTouch:
     def test_horizontal_touch(self):
         a = LayoutRect("a", 0, 0, 5, 4)

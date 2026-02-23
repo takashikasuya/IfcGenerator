@@ -67,3 +67,13 @@ def test_validate_shaft_openings_rejects_size_mismatch_between_levels():
         }
     )
     assert any("mismatch" in e.lower() for e in errors)
+
+
+def test_validate_shaft_openings_accepts_valid_sizes():
+    errors = validate_shaft_openings(
+        {
+            0.0: LayoutRect("open_l1", x=0.0, y=0.0, width=1.0, height=1.0),
+            3.0: LayoutRect("open_l2", x=0.0, y=0.0, width=1.0, height=1.0),
+        }
+    )
+    assert errors == []

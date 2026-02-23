@@ -821,3 +821,68 @@ class TestEquipmentExport:
         assert placements["Temp-01"] != placements["Temp-02"]
         assert placements["Temp-01"][2] == pytest.approx(0.0)
         assert placements["Temp-02"][2] == pytest.approx(0.0)
+
+
+    def test_ifc_exports_material_thermal_properties(self, tmp_path, minimal_ttl):
+        """Walls/slabs/doors should include thermal metadata psets for HVAC integration."""
+        import ifcopenshell
+
+        from topo2ifc.config import Config
+        from topo2ifc.geometry.doors import extract_doors
+        from topo2ifc.geometry.slabs import extract_slabs
+        from topo2ifc.geometry.walls import extract_walls
+        from topo2ifc.ifc.exporter import IfcExporter
+        from topo2ifc.layout.postprocess import snap_to_grid, to_shapely_polygons
+        from topo2ifc.layout.solver_heuristic import HeuristicSolver
+        from topo2ifc.rdf.loader import RDFLoader
+        from topo2ifc.topology.graph import TopologyGraph
+
+        loader = RDFLoader(minimal_ttl)
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+        topo = TopologyGraph.from_parts(spaces, loader.extract_adjacencies(g), loader.extract_connections(g))
+        rects = snap_to_grid(HeuristicSolver().solve(topo))
+        polygons = to_shapely_polygons(rects)
+
+        cfg = Config.default()
+        out = tmp_path / "thermal.ifc"
+        IfcExporter(cfg).export(
+            spaces,
+            rects,
+            extract_walls(polygons),
+            extract_slabs(polygons),
+            extract_doors(polygons, topo.connected_pairs()),
+            out,
+        )
+        ifc = ifcopenshell.open(str(out))
+
+        def _get_pset_map(entity):
+            psets = {}
+            for rel in getattr(entity, "IsDefinedBy", []) or []:
+                pset = getattr(rel, "RelatingPropertyDefinition", None)
+                if pset is None or not pset.is_a("IfcPropertySet"):
+                    continue
+                props = {}
+                for prop in pset.HasProperties or []:
+                    if prop.is_a("IfcPropertySingleValue") and prop.NominalValue is not None:
+                        props[prop.Name] = prop.NominalValue.wrappedValue
+                psets[pset.Name] = props
+            return psets
+
+        wall = ifc.by_type("IfcWall")[0]
+        slab = ifc.by_type("IfcSlab")[0]
+
+        checks = [
+            (wall, cfg.material_thermal.wall),
+            (slab, cfg.material_thermal.slab),
+        ]
+        doors = ifc.by_type("IfcDoor")
+        if doors:
+            checks.append((doors[0], cfg.material_thermal.door))
+
+        for element, expected in checks:
+            pset = _get_pset_map(element)["Pset_Topo2IfcThermal"]
+            assert pset["MaterialName"] == expected.material_name
+            assert pset["ThermalConductivity"] == pytest.approx(expected.thermal_conductivity)
+            assert pset["Density"] == pytest.approx(expected.density)
+            assert pset["SpecificHeatCapacity"] == pytest.approx(expected.specific_heat_capacity)

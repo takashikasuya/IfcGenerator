@@ -136,16 +136,16 @@ AI agents must read this file before starting work and mark each task `[x]` when
 ## Phase 5 – IFC property enrichment for HVAC integration
 
 ### 5-1 Material/thermal metadata on exported building elements
-- [ ] Review wall/slab/door IFC output and define required material-related properties for HVAC simulators.
-- [ ] Add configurable material/thermal metadata in `Config` and export those as IFC property sets/material assignments.
-- [ ] Add end-to-end tests asserting exported IFC contains the new element properties.
+- [x] Review wall/slab/door IFC output and define required material-related properties for HVAC simulators.
+- [x] Add configurable material/thermal metadata in `Config` and export those as IFC property sets/material assignments.
+- [x] Add end-to-end tests asserting exported IFC contains the new element properties.
 
 ---
 
 ## Phase 6 – Multi-storey layout algorithm redesign
 
 ### 6-1 Formalize floor-wise zoning and vertical-core constraints
-- [ ] Define a two-stage solve strategy that preserves current single-storey quality while extending to multi-storey: (1) per-floor 2D solve, (2) vertical core alignment solve.
+- [x] Define a two-stage solve strategy that preserves current single-storey quality while extending to multi-storey: (1) per-floor 2D solve, (2) vertical core alignment solve.
 - [ ] Introduce explicit `VerticalCoreSpec` / `CirculationSpec` requirements in topology extraction for stairs and elevators.
 - [ ] Add topology validation rules that enforce stair presence for `storey_count >= 2` and elevator presence for configurable high-rise thresholds.
 

@@ -90,3 +90,33 @@ def add_point_pset(
         props["HasQuantity"] = has_quantity
 
     ifcopenshell.api.run("pset.edit_pset", ifc, pset=pset, properties=props)
+
+
+def add_material_thermal_pset(
+    ifc: ifcopenshell.file,
+    element,
+    element_type: str,
+    material_name: str,
+    thermal_conductivity: float,
+    density: float,
+    specific_heat_capacity: float,
+) -> None:
+    """Attach material/thermal metadata for HVAC-oriented IFC consumers."""
+    pset = ifcopenshell.api.run(
+        "pset.add_pset",
+        ifc,
+        product=element,
+        name="Pset_Topo2IfcThermal",
+    )
+    ifcopenshell.api.run(
+        "pset.edit_pset",
+        ifc,
+        pset=pset,
+        properties={
+            "ElementType": element_type,
+            "MaterialName": material_name,
+            "ThermalConductivity": thermal_conductivity,
+            "Density": density,
+            "SpecificHeatCapacity": specific_heat_capacity,
+        },
+    )

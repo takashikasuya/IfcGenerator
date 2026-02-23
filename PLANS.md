@@ -136,9 +136,9 @@ AI agents must read this file before starting work and mark each task `[x]` when
 ## Phase 5 – IFC property enrichment for HVAC integration
 
 ### 5-1 Material/thermal metadata on exported building elements
-- [ ] Review wall/slab/door IFC output and define required material-related properties for HVAC simulators.
-- [ ] Add configurable material/thermal metadata in `Config` and export those as IFC property sets/material assignments.
-- [ ] Add end-to-end tests asserting exported IFC contains the new element properties.
+- [x] Review wall/slab/door IFC output and define required material-related properties for HVAC simulators.
+- [x] Add configurable material/thermal metadata in `Config` and export those as IFC property sets/material assignments.
+- [x] Add end-to-end tests asserting exported IFC contains the new element properties.
 
 ---
 

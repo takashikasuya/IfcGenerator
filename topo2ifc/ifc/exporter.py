@@ -31,7 +31,7 @@ from topo2ifc.geometry.doors import DoorSpec
 from topo2ifc.geometry.slabs import SlabSpec
 from topo2ifc.geometry.walls import WallSegment
 from topo2ifc.ifc.ifc_context import add_storey, create_ifc_model
-from topo2ifc.ifc.psets import add_equipment_pset, add_point_pset, add_space_pset
+from topo2ifc.ifc.psets import add_equipment_pset, add_material_thermal_pset, add_point_pset, add_space_pset
 from topo2ifc.topology.model import EquipmentSpec, LayoutRect, PointSpec, SpaceSpec
 
 logger = logging.getLogger(__name__)
@@ -331,6 +331,15 @@ class IfcExporter:
             "geometry.assign_representation", ifc, product=entity, representation=shape
         )
         entity.ObjectPlacement = self._local_placement(x, y, slab.elevation - slab.thickness)
+        add_material_thermal_pset(
+            ifc,
+            entity,
+            element_type="Slab",
+            material_name=self.cfg.material_thermal.slab.material_name,
+            thermal_conductivity=self.cfg.material_thermal.slab.thermal_conductivity,
+            density=self.cfg.material_thermal.slab.density,
+            specific_heat_capacity=self.cfg.material_thermal.slab.specific_heat_capacity,
+        )
         return entity
 
     # ------------------------------------------------------------------ #
@@ -360,6 +369,15 @@ class IfcExporter:
         angle = math.atan2(dy, dx)
         entity.ObjectPlacement = self._local_placement_rotated(
             wall.x1, wall.y1, wall.elevation, angle
+        )
+        add_material_thermal_pset(
+            ifc,
+            entity,
+            element_type="Wall",
+            material_name=self.cfg.material_thermal.wall.material_name,
+            thermal_conductivity=self.cfg.material_thermal.wall.thermal_conductivity,
+            density=self.cfg.material_thermal.wall.density,
+            specific_heat_capacity=self.cfg.material_thermal.wall.specific_heat_capacity,
         )
         return entity
 
@@ -417,6 +435,15 @@ class IfcExporter:
             door.y,
             door.elevation,
             angle,
+        )
+        add_material_thermal_pset(
+            ifc,
+            entity,
+            element_type="Door",
+            material_name=self.cfg.material_thermal.door.material_name,
+            thermal_conductivity=self.cfg.material_thermal.door.thermal_conductivity,
+            density=self.cfg.material_thermal.door.density,
+            specific_heat_capacity=self.cfg.material_thermal.door.specific_heat_capacity,
         )
         return entity
 

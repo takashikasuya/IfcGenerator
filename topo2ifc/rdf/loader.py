@@ -356,12 +356,19 @@ class RDFLoader:
 
                 name = _first_literal(g, subject, V.PROP_NAME)
                 space_id: Optional[str] = None
+                space_ids: list[str] = []
                 for pred in V.LOCATED_IN:
                     for obj in g.objects(subject, pred):
-                        space_id = str(obj)
-                        break
-                    if space_id:
-                        break
+                        space_ids.append(str(obj))
+                if space_ids:
+                    space_id = space_ids[0]
+                    if len(space_ids) > 1:
+                        logger.warning(
+                            "Circulation element %s has multiple LOCATED_IN spaces (%s); using first: %s",
+                            cid,
+                            ", ".join(space_ids),
+                            space_id,
+                        )
 
                 circulation.append(
                     CirculationSpec(

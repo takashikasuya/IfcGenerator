@@ -154,9 +154,13 @@ class HeuristicSolver(LayoutSolverBase):
 
     def _is_split_core_layout(self, core_specs: list) -> bool:
         labels = [self._core_side_label(spec) for spec in core_specs]
-        if not labels:
+        # Only consider explicitly side-labeled cores ("left"/"right") when
+        # determining if this is a split-core layout; ignore "center" cores.
+        side_labels = [label for label in labels if label in ("left", "right")]
+        if len(side_labels) < 2:
             return False
-        return len(set(labels)) >= 2
+        # Treat as split-core only if we have cores on both sides.
+        return len(set(side_labels)) >= 2
 
     def _split_core_groups(self, cores: list) -> tuple[list, list]:
         """

@@ -4,10 +4,15 @@ from __future__ import annotations
 
 from topo2ifc.layout.postprocess import check_overlaps
 from topo2ifc.topology.graph import TopologyGraph
-from topo2ifc.topology.model import LayoutRect, SpaceSpec
+from topo2ifc.topology.model import LayoutRect, SpaceSpec, VerticalCoreSpec
 
 
-def validate_topology(topo: TopologyGraph) -> list[str]:
+def validate_topology(
+    topo: TopologyGraph,
+    vertical_cores: list[VerticalCoreSpec] | None = None,
+    storey_count: int | None = None,
+    highrise_elevator_threshold: int = 6,
+) -> list[str]:
     """Return a list of topology-level validation errors."""
     errors: list[str] = []
     errors.extend(topo.validate())
@@ -19,6 +24,32 @@ def validate_topology(topo: TopologyGraph) -> list[str]:
             errors.append(f"Connection references unknown space: {a}")
         if b not in space_ids:
             errors.append(f"Connection references unknown space: {b}")
+
+    resolved_storey_count = storey_count
+    if resolved_storey_count is None:
+        storey_ids = {s.storey_id for s in topo.spaces if s.storey_id}
+        if len(storey_ids) > 0:
+            resolved_storey_count = len(storey_ids)
+        else:
+            elevations = {s.storey_elevation for s in topo.spaces if s.storey_elevation is not None}
+            resolved_storey_count = max(1, len(elevations))
+
+    core_specs = vertical_cores or []
+    core_types = {c.core_type.lower() for c in core_specs}
+
+    if resolved_storey_count >= 2 and "stair" not in core_types:
+        errors.append(
+            "Multi-storey topology requires at least one stair core (storey_count >= 2)."
+        )
+
+    if (
+        resolved_storey_count >= highrise_elevator_threshold
+        and "elevator" not in core_types
+    ):
+        errors.append(
+            "High-rise topology requires at least one elevator core "
+            f"(storey_count >= {highrise_elevator_threshold})."
+        )
 
     return errors
 

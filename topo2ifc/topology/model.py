@@ -7,6 +7,8 @@ LayoutRect  – 2-D rectangular placement produced by the Layout Solver
 StoreySpec  – attributes of a building storey / level
 EquipmentSpec – attributes of equipment linked to a containing space
 PointSpec – attributes of SBCO points linked to equipment
+CirculationSpec – stairs/elevators used for vertical circulation
+VerticalCoreSpec – vertical core requirements derived from circulation specs
 """
 
 from __future__ import annotations
@@ -114,6 +116,26 @@ class PointSpec:
     point_type: Optional[str] = None
     unit: Optional[str] = None
     has_quantity: Optional[str] = None
+
+
+@dataclass
+class CirculationSpec:
+    """Specification of a circulation element (stair/elevator)."""
+
+    circulation_id: str
+    circulation_type: str = "generic"
+    name: str = ""
+    space_id: Optional[str] = None
+
+
+@dataclass
+class VerticalCoreSpec:
+    """Specification of a vertical core used in multi-storey circulation."""
+
+    core_id: str
+    core_type: str = "generic"
+    name: str = ""
+    space_id: Optional[str] = None
 
 
 # --------------------------------------------------------------------------- #

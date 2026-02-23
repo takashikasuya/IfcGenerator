@@ -30,6 +30,7 @@ class SolverConfig:
     solver_time_limit_sec: int = 60
     grid_unit: float = 0.5  # grid resolution for CP-SAT (metres)
     max_iter: int = 5000  # SA / hill-climbing iterations
+    highrise_elevator_threshold: int = 6
 
 
 @dataclass

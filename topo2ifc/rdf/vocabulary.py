@@ -67,6 +67,12 @@ POINT_CLASSES: tuple[URIRef, ...] = (
     SBCO.PointExt,
 )
 
+# Vertical circulation concepts
+CIRCULATION_CLASSES: tuple[URIRef, ...] = (
+    SBCO.Stair,
+    SBCO.Elevator,
+)
+
 # --------------------------------------------------------------------------- #
 # Object Properties
 # --------------------------------------------------------------------------- #
@@ -109,6 +115,11 @@ LOCATED_IN: tuple[URIRef, ...] = (
 # Equipment → Point relation
 HAS_POINT: tuple[URIRef, ...] = (
     SBCO.hasPoint,
+)
+
+# Core/space relation for vertical circulation entities
+HAS_CIRCULATION: tuple[URIRef, ...] = (
+    SBCO.hasPart,
 )
 
 # Building → Storey containment

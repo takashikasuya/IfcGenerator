@@ -118,8 +118,10 @@ def main(
     loader = RDFLoader(input_path)
     g = loader.load()
     spaces = loader.extract_spaces(g)
+    storeys = loader.extract_storeys(g)
     adjacencies = loader.extract_adjacencies(g)
     connections = loader.extract_connections(g)
+    vertical_cores = loader.extract_vertical_cores(g)
     equipment = loader.extract_equipment(g)
     points = loader.extract_points(g)
     spaces, adjacencies, connections = _apply_single_storey_mode(
@@ -129,7 +131,12 @@ def main(
 
     # ---- Build topology graph ----------------------------------------- #
     topo = TopologyGraph.from_parts(spaces, adjacencies, connections)
-    topo_errors = validate_topology(topo)
+    topo_errors = validate_topology(
+        topo,
+        vertical_cores=vertical_cores,
+        storey_count=max(1, len(storeys)),
+        highrise_elevator_threshold=cfg.solver.highrise_elevator_threshold,
+    )
     if topo_errors:
         for e in topo_errors:
             logger.error("Topology error: %s", e)

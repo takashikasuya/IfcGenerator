@@ -515,19 +515,36 @@ class IfcExporter:
             grouped.setdefault(base, []).append((rect, spec))
 
         openings: dict[float, LayoutRect] = {}
-        for _, items in grouped.items():
+        for base, items in grouped.items():
+            # Require at least two stacked core spaces before computing a shaft opening.
             if len(items) < 2:
                 continue
             xs = [r.x for r, _ in items]
             ys = [r.y for r, _ in items]
             x2s = [r.x2 for r, _ in items]
             y2s = [r.y2 for r, _ in items]
+
+            # The opening is defined as the intersection of all stacked core rectangles.
+            # If cores are misaligned across storeys (no common overlap), skip creating
+            # a synthetic opening instead of fabricating a tiny 0.3 x 0.3 shaft.
+            xs_max = max(xs)
+            ys_max = max(ys)
+            x2_min = min(x2s)
+            y2_min = min(y2s)
+            if x2_min <= xs_max or y2_min <= ys_max:
+                logger.warning(
+                    "Skipping shaft opening for core stack '%s' due to non-overlapping "
+                    "core rectangles across storeys.",
+                    base,
+                )
+                continue
+
             open_rect = LayoutRect(
                 space_id="__shaft_opening__",
-                x=max(xs),
-                y=max(ys),
-                width=max(0.3, min(x2s) - max(xs)),
-                height=max(0.3, min(y2s) - max(ys)),
+                x=xs_max,
+                y=ys_max,
+                width=max(0.3, x2_min - xs_max),
+                height=max(0.3, y2_min - ys_max),
             )
             for _, spec in items:
                 if spec.storey_elevation is None:

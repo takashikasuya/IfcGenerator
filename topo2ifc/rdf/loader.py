@@ -379,6 +379,7 @@ class RDFLoader:
                     )
                 )
 
+        logger.debug("Extracted %d circulation elements", len(circulation))
         return circulation
 
     def extract_vertical_cores(self, g: Optional[Graph] = None) -> list[VerticalCoreSpec]:

@@ -1,0 +1,34 @@
+@prefix sbco: <https://www.sbco.or.jp/ont/> .
+@prefix topo: <https://topo2ifc.example.org/ont#> .
+@prefix bot:  <https://w3id.org/bot#> .
+@prefix ex:   <https://example.com/> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+# SBCO example aligned with smartbuiding_ontology style hierarchy
+ex:site_tokyo a sbco:Site ;
+    sbco:name "Tokyo Site" ;
+    sbco:hasPart ex:building_main .
+
+ex:building_main a sbco:Building ;
+    sbco:name "Main Building" ;
+    sbco:hasPart ex:level_3f .
+
+ex:level_3f a sbco:Level ;
+    sbco:name "3F" ;
+    sbco:elevation "9.0"^^xsd:float ;
+    sbco:hasPart ex:space_office, ex:space_meeting .
+
+ex:space_office a sbco:Space ;
+    sbco:name "Office Area" ;
+    sbco:isPartOf ex:level_3f ;
+    topo:areaTarget "30.0"^^xsd:float ;
+    topo:areaMin "24.0"^^xsd:float .
+
+ex:space_meeting a sbco:Space ;
+    sbco:name "Meeting Room" ;
+    sbco:isPartOf ex:level_3f ;
+    topo:areaTarget "20.0"^^xsd:float ;
+    topo:areaMin "12.0"^^xsd:float .
+
+# Adjacency is expressed with BOT predicate (SBCO focuses on containment)
+ex:space_office bot:adjacentElement ex:space_meeting .

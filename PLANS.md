@@ -119,7 +119,7 @@ AI agents must read this file before starting work and mark each task `[x]` when
 
 ### 4-2 Documentation
 - [x] Update `README.md` to add an SBCO-vocabulary example and link to the smartbuilding_ontology repository.
-- [ ] Add a sample SBCO Turtle file under `sample/sbco_example.ttl` that mirrors the example in the smartbuilding_ontology README.
+- [x] Add a sample SBCO Turtle file under `sample/sbco_example.ttl` that mirrors the example in the smartbuilding_ontology README.
 - [x] Add a step-by-step runtime behavior document under `docs/` and link it from `README.md`.
 - [x] Expand runtime documentation with a per-solver explanation (`heuristic` / `ortools`) and solver selection guidance.
 

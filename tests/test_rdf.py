@@ -9,6 +9,7 @@ from topo2ifc.rdf.loader import RDFLoader
 from topo2ifc.topology.model import SpaceCategory
 
 FIXTURES = Path(__file__).parent / "fixtures"
+SAMPLE_DIR = Path(__file__).parent.parent / "sample"
 
 
 class TestRDFLoader:
@@ -301,3 +302,15 @@ class TestSBCOConstraintWarnings:
         g = loader.load()
         loader.extract_spaces(g)
         assert loader.get_warnings() == []
+
+
+class TestSBCOSampleFile:
+    """Smoke test for sample/sbco_example.ttl documented in README."""
+
+    def test_sample_sbco_example_extracts_spaces(self):
+        loader = RDFLoader(SAMPLE_DIR / "sbco_example.ttl")
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+
+        assert len(spaces) == 2
+        assert {s.name for s in spaces} == {"Office Area", "Meeting Room"}

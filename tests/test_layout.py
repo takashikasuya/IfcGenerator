@@ -151,6 +151,58 @@ class TestHeuristicSolver:
         # Non-core spaces should not be placed below the core band.
         assert rect_map["room_a"].y >= core_band_height - 1e-9
         assert rect_map["room_b"].y >= core_band_height - 1e-9
+
+    def test_stair_scoring_prefers_corridor_over_dead_end(self):
+        topo = TopologyGraph.from_parts(
+            [
+                SpaceSpec("stair", name="Main Stair", category="core", area_target=9.0),
+                SpaceSpec("corridor", name="Corridor", category="corridor", area_target=12.0),
+                SpaceSpec("room_dead", name="Dead Room", category="office", area_target=9.0),
+            ],
+            [AdjacencyEdge("stair", "corridor"), AdjacencyEdge("stair", "room_dead")],
+            [],
+        )
+        solver = HeuristicSolver(SolverConfig(seed=0))
+
+        closer_to_corridor = {
+            "stair": LayoutRect("stair", 0, 0, 3, 3),
+            "corridor": LayoutRect("corridor", 3, 0, 4, 3),
+            "room_dead": LayoutRect("room_dead", 12, 0, 3, 3),
+        }
+        closer_to_dead_end = {
+            "stair": LayoutRect("stair", 10, 0, 3, 3),
+            "corridor": LayoutRect("corridor", 0, 0, 4, 3),
+            "room_dead": LayoutRect("room_dead", 13, 0, 3, 3),
+        }
+
+        assert solver._circulation_score(topo, closer_to_corridor) > solver._circulation_score(
+            topo, closer_to_dead_end
+        )
+
+    def test_elevator_scoring_prefers_central_location(self):
+        topo = TopologyGraph.from_parts(
+            [
+                SpaceSpec("elevator", name="Main Elevator", category="core", area_target=6.0),
+                SpaceSpec("room_a", category="office", area_target=25.0),
+                SpaceSpec("room_b", category="office", area_target=16.0),
+            ],
+            [],
+            [],
+        )
+        solver = HeuristicSolver(SolverConfig(seed=0))
+
+        central = {
+            "elevator": LayoutRect("elevator", 4, 0, 2, 2),
+            "room_a": LayoutRect("room_a", 0, 0, 4, 4),
+            "room_b": LayoutRect("room_b", 6, 0, 4, 4),
+        }
+        edge = {
+            "elevator": LayoutRect("elevator", 0, 0, 2, 2),
+            "room_a": LayoutRect("room_a", 3, 0, 4, 4),
+            "room_b": LayoutRect("room_b", 9, 0, 4, 4),
+        }
+
+        assert solver._circulation_score(topo, central) > solver._circulation_score(topo, edge)
 class TestOrtoolsSolver:
     def test_returns_rects_without_overlap(self):
         pytest.importorskip("ortools")

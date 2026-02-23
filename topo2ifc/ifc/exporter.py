@@ -515,57 +515,38 @@ class IfcExporter:
             grouped.setdefault(base, []).append((rect, spec))
 
         openings: dict[float, LayoutRect] = {}
+        min_size = 0.3
         for base, items in grouped.items():
             # Require at least two stacked core spaces before computing a shaft opening.
             if len(items) < 2:
                 continue
-            xs = [r.x for r, _ in items]
-            ys = [r.y for r, _ in items]
-            x2s = [r.x2 for r, _ in items]
-            y2s = [r.y2 for r, _ in items]
 
-            # The opening is defined as the intersection of all stacked core rectangles.
-            # If cores are misaligned across storeys (no common overlap), skip creating
-            # a synthetic opening instead of fabricating a tiny 0.3 x 0.3 shaft.
-            xs_max = max(xs)
-            ys_max = max(ys)
-            x2_min = min(x2s)
-            y2_min = min(y2s)
-            if x2_min <= xs_max or y2_min <= ys_max:
-                logger.warning(
-                    "Skipping shaft opening for core stack '%s' due to non-overlapping "
-                    "core rectangles across storeys.",
-                    base,
-                )
-                continue
-
-            # Use the true intersection dimensions; treat very small intersections as invalid
-            # instead of clamping them up to a minimum size, to avoid fabricating shafts
-            # that extend outside some storeys' core footprints.
-            width = x2_min - xs_max
-            height = y2_min - ys_max
-            min_size = 0.3
+            # Use a consistent shaft size across storeys based on the tightest core footprint.
+            width = min(r.width for r, _ in items)
+            height = min(r.height for r, _ in items)
             if width < min_size or height < min_size:
                 logger.warning(
                     "Skipping shaft opening for core stack '%s' due to too small "
-                    "intersection (%.3f x %.3f m).",
+                    "core footprint (%.3f x %.3f m).",
                     base,
                     width,
                     height,
                 )
                 continue
 
-            open_rect = LayoutRect(
-                space_id="__shaft_opening__",
-                x=xs_max,
-                y=ys_max,
-                width=width,
-                height=height,
-            )
-            for _, spec in items:
+            for rect, spec in items:
                 if spec.storey_elevation is None:
                     continue
                 elev_key = round(spec.storey_elevation, 3)
+                # Keep opening centered inside each storey's core footprint so openings are
+                # generated even when core rectangles are not perfectly overlapping in XY.
+                open_rect = LayoutRect(
+                    space_id="__shaft_opening__",
+                    x=rect.x + (rect.width - width) * 0.5,
+                    y=rect.y + (rect.height - height) * 0.5,
+                    width=width,
+                    height=height,
+                )
                 existing = openings.get(elev_key)
                 if existing is None:
                     openings[elev_key] = open_rect

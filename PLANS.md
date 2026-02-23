@@ -51,6 +51,11 @@ AI agents must read this file before starting work and mark each task `[x]` when
 - [x] Export rooftop geometry (`IfcRoof`) for each storey slab footprint.
 - [x] Add regression tests for non-degenerate wall lengths and roof existence.
 
+
+### H-9 Stabilize vertical shaft opening validation and export
+- [x] Restore shaft-opening validation for cross-storey size mismatch detection.
+- [x] Ensure multi-storey stair/elevator fixtures export at least one `IfcOpeningElement` even when core rectangles are XY-misaligned.
+
 ---
 
 ## Phase 1 – SBCO Vocabulary Support

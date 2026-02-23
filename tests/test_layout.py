@@ -119,7 +119,38 @@ class TestHeuristicSolver:
         assert rect_map["room_a"].y >= core_band_height - 1e-9
         assert rect_map["room_b"].y >= core_band_height - 1e-9
 
+    def test_vertical_cores_remain_at_y_zero_with_adjacencies(self):
+        # Create a topology where cores have adjacency/connection edges to other spaces,
+        # so that hill-climb has desired pairs and may consider swaps. We still expect
+        # the vertical cores to remain anchored at y = 0.
+        spaces = [
+            SpaceSpec("stair_f1", name="Main Stair", category="core", area_target=9.0),
+            SpaceSpec("elevator_f1", name="Main Elevator", category="core", area_target=6.0),
+            SpaceSpec("room_a", category="office", area_target=20.0),
+            SpaceSpec("room_b", category="meeting", area_target=16.0),
+        ]
+        adjacencies = [
+            AdjacencyEdge("room_a", "stair_f1"),
+            AdjacencyEdge("room_b", "stair_f1"),
+            AdjacencyEdge("room_a", "elevator_f1"),
+        ]
+        connections = [
+            ConnectionEdge("room_a", "stair_f1"),
+            ConnectionEdge("room_b", "elevator_f1"),
+        ]
+        topo = TopologyGraph.from_parts(spaces, adjacencies, connections)
 
+        solver = HeuristicSolver(SolverConfig(seed=42, grid_unit=0.5))
+        rects = solver.solve(topo)
+        rect_map = {r.space_id: r for r in rects}
+
+        core_band_height = max(rect_map["stair_f1"].height, rect_map["elevator_f1"].height)
+        # Cores should remain at the ground band even after hill-climb optimization.
+        assert rect_map["stair_f1"].y == pytest.approx(0.0)
+        assert rect_map["elevator_f1"].y == pytest.approx(0.0)
+        # Non-core spaces should not be placed below the core band.
+        assert rect_map["room_a"].y >= core_band_height - 1e-9
+        assert rect_map["room_b"].y >= core_band_height - 1e-9
 class TestOrtoolsSolver:
     def test_returns_rects_without_overlap(self):
         pytest.importorskip("ortools")

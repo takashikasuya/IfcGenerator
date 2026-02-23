@@ -126,6 +126,10 @@ AI agents must read this file before starting work and mark each task `[x]` when
 ### 4-3 CI pipeline
 - [x] Add a GitHub Actions workflow (`.github/workflows/ci.yml`) that runs `pytest tests/` on every push and pull request.
 
+### 4-4 Point export performance/placement fixes
+- [x] Build and reuse `spaces_by_id` for equipment/point storey resolution to avoid repeated linear scans.
+- [x] Derive point placement from parent equipment/storey context so Z is consistent and points do not collapse to a single fixed origin.
+
 ## Phase 5 – IFC property enrichment for HVAC integration
 
 ### 5-1 Material/thermal metadata on exported building elements

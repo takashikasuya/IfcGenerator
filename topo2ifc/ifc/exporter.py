@@ -82,6 +82,7 @@ class IfcExporter:
         default_storey = self._ctx["storey"]
 
         rect_by_id = {r.space_id: r for r in rects}
+        spaces_by_id = {s.space_id: s for s in spaces}
         spaces_by_elev: dict[float, list[SpaceSpec]] = {}
         for spec in spaces:
             if spec.storey_elevation is None:
@@ -209,7 +210,7 @@ class IfcExporter:
         equipment_by_id: dict[str, object] = {}
         equipment_specs_by_id: dict[str, EquipmentSpec] = {eq.equipment_id: eq for eq in (equipment or [])}
         for eq in equipment or []:
-            ifc_eq = self._create_equipment(eq, body_ctx, rect_by_id)
+            ifc_eq = self._create_equipment(eq, body_ctx, rect_by_id, spaces_by_id)
             target_storey = default_storey
             if eq.space_id and eq.space_id in ifc_spaces:
                 ifcopenshell.api.run(
@@ -218,7 +219,7 @@ class IfcExporter:
                     products=[ifc_eq],
                     relating_structure=ifc_spaces[eq.space_id],
                 )
-                spec = next((sp for sp in spaces if sp.space_id == eq.space_id), None)
+                spec = spaces_by_id.get(eq.space_id)
                 if spec is not None:
                     target_storey = _get_storey(spec)
             ifcopenshell.api.run(
@@ -229,9 +230,27 @@ class IfcExporter:
             )
             equipment_by_id[eq.equipment_id] = ifc_eq
 
+        point_count_by_equipment: dict[str, int] = {}
         for point in points or []:
-            ifc_point = self._create_point(point, body_ctx)
             target_storey = default_storey
+            placement_x, placement_y, placement_z = 0.0, 0.0, self.geo.storey_elevation
+            if point.equipment_id and point.equipment_id in equipment_specs_by_id:
+                parent_eq = equipment_specs_by_id[point.equipment_id]
+                if parent_eq.space_id and parent_eq.space_id in spaces_by_id:
+                    spec = spaces_by_id[parent_eq.space_id]
+                    target_storey = _get_storey(spec)
+                    placement_z = spec.storey_elevation or 0.0
+                    if parent_eq.space_id in rect_by_id:
+                        rect = rect_by_id[parent_eq.space_id]
+                        placement_x, placement_y = rect.cx, rect.cy
+
+                count = point_count_by_equipment.get(point.equipment_id, 0)
+                point_count_by_equipment[point.equipment_id] = count + 1
+                offset_step = 0.15
+                placement_x += offset_step * ((count % 3) - 1)
+                placement_y += offset_step * (count // 3)
+
+            ifc_point = self._create_point(point, body_ctx, placement_x, placement_y, placement_z)
             if point.equipment_id and point.equipment_id in equipment_by_id:
                 ifcopenshell.api.run(
                     "nest.assign_object",
@@ -239,11 +258,6 @@ class IfcExporter:
                     related_objects=[ifc_point],
                     relating_object=equipment_by_id[point.equipment_id],
                 )
-                parent_eq = equipment_specs_by_id.get(point.equipment_id)
-                if parent_eq and parent_eq.space_id:
-                    spec = next((sp for sp in spaces if sp.space_id == parent_eq.space_id), None)
-                    if spec is not None:
-                        target_storey = _get_storey(spec)
             ifcopenshell.api.run(
                 "spatial.assign_container",
                 ifc,
@@ -475,7 +489,13 @@ class IfcExporter:
     # Equipment
     # ------------------------------------------------------------------ #
 
-    def _create_equipment(self, eq: EquipmentSpec, body_ctx, rect_by_id: dict[str, LayoutRect]):
+    def _create_equipment(
+        self,
+        eq: EquipmentSpec,
+        body_ctx,
+        rect_by_id: dict[str, LayoutRect],
+        spaces_by_id: dict[str, SpaceSpec],
+    ):
         ifc = self.ifc
         entity = ifcopenshell.api.run(
             "root.create_entity",
@@ -488,7 +508,9 @@ class IfcExporter:
         placement_x, placement_y, placement_z = 0.0, 0.0, self.geo.storey_elevation
         if eq.space_id and eq.space_id in rect_by_id:
             rect = rect_by_id[eq.space_id]
-            placement_x, placement_y, placement_z = rect.cx, rect.cy, 0.0
+            placement_x, placement_y = rect.cx, rect.cy
+        if eq.space_id and eq.space_id in spaces_by_id:
+            placement_z = spaces_by_id[eq.space_id].storey_elevation or 0.0
 
         shape = self._extruded_rect_shape(0.0, 0.0, 0.4, 0.4, 0.4, body_ctx)
         ifcopenshell.api.run(
@@ -508,7 +530,7 @@ class IfcExporter:
         )
         return entity
 
-    def _create_point(self, point: PointSpec, body_ctx):
+    def _create_point(self, point: PointSpec, body_ctx, x: float, y: float, z: float):
         ifc = self.ifc
         ptype = (point.point_type or "").lower()
         ifc_class = "IfcActuator" if (ptype.startswith("cmd") or "command" in ptype) else "IfcSensor"
@@ -520,7 +542,6 @@ class IfcExporter:
         )
         entity.ObjectType = point.point_class
 
-        placement_x, placement_y, placement_z = 0.0, 0.0, self.geo.storey_elevation
         shape = self._extruded_rect_shape(0.0, 0.0, 0.1, 0.1, 0.1, body_ctx)
         ifcopenshell.api.run(
             "geometry.assign_representation",
@@ -528,7 +549,7 @@ class IfcExporter:
             product=entity,
             representation=shape,
         )
-        entity.ObjectPlacement = self._local_placement(placement_x, placement_y, placement_z)
+        entity.ObjectPlacement = self._local_placement(x, y, z)
 
         add_point_pset(
             ifc,

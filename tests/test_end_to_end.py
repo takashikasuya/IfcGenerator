@@ -754,3 +754,70 @@ class TestEquipmentExport:
         assert any("PointType" in names for names in point_psets)
         assert any("Unit" in names for names in point_psets)
         assert any("HasQuantity" in names for names in point_psets)
+
+    def test_point_placement_uses_parent_space_storey_and_offsets(self, tmp_path):
+        """Points should not collapse to one origin and should use parent storey elevation."""
+        import ifcopenshell
+
+        from topo2ifc.config import Config
+        from topo2ifc.geometry.doors import extract_doors
+        from topo2ifc.geometry.slabs import extract_slabs
+        from topo2ifc.geometry.walls import extract_walls
+        from topo2ifc.ifc.exporter import IfcExporter
+        from topo2ifc.layout.postprocess import snap_to_grid, to_shapely_polygons
+        from topo2ifc.layout.solver_heuristic import HeuristicSolver
+        from topo2ifc.rdf.loader import RDFLoader
+        from topo2ifc.topology.graph import TopologyGraph
+        from topo2ifc.topology.model import PointSpec
+
+        loader = RDFLoader(FIXTURES / "sbco_equipment.ttl")
+        g = loader.load()
+        spaces = loader.extract_spaces(g)
+        equipment = loader.extract_equipment(g)
+        points = loader.extract_points(g)
+        points.append(
+            PointSpec(
+                point_id="urn:sbco:point:temp-02",
+                name="Temp-02",
+                equipment_id="urn:sbco:eq:ahu-01",
+                point_class="Point",
+                point_type="temperature",
+                unit="degC",
+                has_quantity="Temperature",
+            )
+        )
+
+        topo = TopologyGraph.from_parts(spaces, loader.extract_adjacencies(g), loader.extract_connections(g))
+        rects = snap_to_grid(HeuristicSolver().solve(topo))
+        polygons = to_shapely_polygons(rects)
+
+        out = tmp_path / "point_placement.ifc"
+        IfcExporter(Config.default()).export(
+            spaces,
+            rects,
+            extract_walls(polygons),
+            extract_slabs(polygons),
+            extract_doors(polygons, topo.connected_pairs()),
+            out,
+            equipment=equipment,
+            points=points,
+        )
+
+        ifc = ifcopenshell.open(str(out))
+
+        sensor_like = [*ifc.by_type("IfcSensor"), *ifc.by_type("IfcActuator")]
+        assert len(sensor_like) >= 3
+
+        placements = {}
+        for entity in sensor_like:
+            if not entity.ObjectPlacement:
+                continue
+            rel = entity.ObjectPlacement.RelativePlacement
+            loc = rel.Location.Coordinates
+            placements[entity.Name] = (float(loc[0]), float(loc[1]), float(loc[2]))
+
+        assert "Temp-01" in placements
+        assert "Temp-02" in placements
+        assert placements["Temp-01"] != placements["Temp-02"]
+        assert placements["Temp-01"][2] == pytest.approx(0.0)
+        assert placements["Temp-02"][2] == pytest.approx(0.0)

@@ -244,11 +244,11 @@ class IfcExporter:
                         rect = rect_by_id[parent_eq.space_id]
                         placement_x, placement_y = rect.cx, rect.cy
 
-                count = point_count_by_equipment.get(point.equipment_id, 0)
-                point_count_by_equipment[point.equipment_id] = count + 1
-                offset_step = 0.15
-                placement_x += offset_step * ((count % 3) - 1)
-                placement_y += offset_step * (count // 3)
+                        count = point_count_by_equipment.get(point.equipment_id, 0)
+                        point_count_by_equipment[point.equipment_id] = count + 1
+                        offset_step = 0.15
+                        placement_x += offset_step * ((count % 3) - 1)
+                        placement_y += offset_step * (count // 3)
 
             ifc_point = self._create_point(point, body_ctx, placement_x, placement_y, placement_z)
             if point.equipment_id and point.equipment_id in equipment_by_id:

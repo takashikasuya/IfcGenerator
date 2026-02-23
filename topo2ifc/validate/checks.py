@@ -99,4 +99,16 @@ def validate_shaft_openings(
             errors.append(
                 f"Shaft opening at elevation {elev:.3f} has non-positive dimensions."
             )
+
+    rects = list(openings_by_elevation.values())
+    if len(rects) >= 2:
+        ref = rects[0]
+        tol = 1e-6
+        for rect in rects[1:]:
+            if abs(rect.width - ref.width) > tol or abs(rect.height - ref.height) > tol:
+                errors.append(
+                    "Shaft opening size mismatch detected between storeys; "
+                    "all shaft openings must have identical width and height."
+                )
+                break
     return errors

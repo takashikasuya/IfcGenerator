@@ -131,10 +131,12 @@ def main(
 
     # ---- Build topology graph ----------------------------------------- #
     topo = TopologyGraph.from_parts(spaces, adjacencies, connections)
+    # Determine effective storey count after applying single-storey mode.
+    storey_count = 1 if getattr(cfg.solver, "single_storey_mode", False) else max(1, len(storeys))
     topo_errors = validate_topology(
         topo,
         vertical_cores=vertical_cores,
-        storey_count=max(1, len(storeys)),
+        storey_count=storey_count,
         highrise_elevator_threshold=cfg.solver.highrise_elevator_threshold,
     )
     if topo_errors:

@@ -102,7 +102,7 @@ class TestHeuristicSolver:
         aspect = max(total_w, total_h) / max(1e-9, min(total_w, total_h))
         assert aspect <= 2.2
 
-    def test_prepaces_vertical_cores_before_other_spaces(self):
+    def test_preplaces_vertical_cores_before_other_spaces(self):
         topo = TopologyGraph()
         topo.add_space(SpaceSpec("stair_f1", name="Main Stair", category="core", area_target=9.0))
         topo.add_space(SpaceSpec("elevator_f1", name="Main Elevator", category="core", area_target=6.0))

@@ -117,11 +117,6 @@ HAS_POINT: tuple[URIRef, ...] = (
     SBCO.hasPoint,
 )
 
-# Core/space relation for vertical circulation entities
-HAS_CIRCULATION: tuple[URIRef, ...] = (
-    SBCO.hasPart,
-)
-
 # Building → Storey containment
 HAS_STOREY: tuple[URIRef, ...] = (
     BOT.hasStorey,

@@ -198,6 +198,10 @@ class IfcExporter:
             for opening_elev, opening_rect in opening_map.items():
                 ifc_slab = slab_by_elevation.get(round(opening_elev, 3))
                 if ifc_slab is None:
+                    logger.warning(
+                        "Skipping shaft opening at elevation %.3f: no slab found at this elevation.",
+                        opening_elev,
+                    )
                     continue
                 ifc_opening = self._create_opening_element(opening_rect, opening_elev, body_ctx)
                 ifcopenshell.api.run(

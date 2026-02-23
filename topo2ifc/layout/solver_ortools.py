@@ -123,10 +123,24 @@ class OrtoolsSolver(LayoutSolverBase):
             pair_dist_vars.append(dx)
             pair_dist_vars.append(dy)
 
+        # Objective term 4: discourage same-type core clustering for split-core fallbacks.
+        core_conflict_penalties = []
+        for ia, ib in self._core_conflict_pairs(spaces):
+            dx = model.new_int_var(0, 2 * (max_coord_g + max_dim_g), f"core_dx_{ia}_{ib}")
+            dy = model.new_int_var(0, 2 * (max_coord_g + max_dim_g), f"core_dy_{ia}_{ib}")
+            model.add_abs_equality(dx, center_x2[ia] - center_x2[ib])
+            model.add_abs_equality(dy, center_y2[ia] - center_y2[ib])
+            manhattan = model.new_int_var(0, 4 * (max_coord_g + max_dim_g), f"core_dist_{ia}_{ib}")
+            model.add(manhattan == dx + dy)
+            proximity = model.new_int_var(0, 2 * max_dim_g, f"core_proximity_{ia}_{ib}")
+            model.add_max_equality(proximity, [0, (2 * max_dim_g) - manhattan])
+            core_conflict_penalties.append(proximity)
+
         model.minimize(
             100 * sum(deviations)
             + 10 * (max_x + max_y)
             + sum(pair_dist_vars)
+            + 5 * sum(core_conflict_penalties)
         )
 
         # Solve
@@ -160,3 +174,26 @@ class OrtoolsSolver(LayoutSolverBase):
             )
 
         return results
+
+    def _core_conflict_pairs(self, spaces) -> list[tuple[int, int]]:
+        typed: list[tuple[int, str]] = []
+        for i, sp in enumerate(spaces):
+            ctype = self._core_type(sp)
+            if ctype in {"stair", "elevator"}:
+                typed.append((i, ctype))
+
+        pairs: list[tuple[int, int]] = []
+        for i in range(len(typed)):
+            for j in range(i + 1, len(typed)):
+                if typed[i][1] == typed[j][1]:
+                    pairs.append((typed[i][0], typed[j][0]))
+        return pairs
+
+    @staticmethod
+    def _core_type(spec) -> str:
+        text = f"{spec.space_id} {spec.name}".lower()
+        if "stair" in text:
+            return "stair"
+        if "elevator" in text or "lift" in text:
+            return "elevator"
+        return "other"

@@ -203,6 +203,31 @@ class TestHeuristicSolver:
         }
 
         assert solver._circulation_score(topo, central) > solver._circulation_score(topo, edge)
+
+    def test_split_core_preplacement_distributes_core_groups(self):
+        topo = TopologyGraph()
+        topo.add_space(SpaceSpec("stair_west_f1", name="West Stair", category="core", area_target=9.0))
+        topo.add_space(SpaceSpec("elevator_west_f1", name="West Elevator", category="core", area_target=6.0))
+        topo.add_space(SpaceSpec("stair_east_f1", name="East Stair", category="core", area_target=9.0))
+        topo.add_space(SpaceSpec("elevator_east_f1", name="East Elevator", category="core", area_target=6.0))
+        topo.add_space(SpaceSpec("room_a", category="office", area_target=25.0))
+        topo.add_space(SpaceSpec("room_b", category="office", area_target=25.0))
+
+        solver = HeuristicSolver(SolverConfig(seed=42, grid_unit=0.5))
+        _, preplaced = solver._preplace_vertical_cores(
+            topo,
+            [s.space_id for s in topo.spaces],
+        )
+        rect_map = {r.space_id: r for r in preplaced}
+
+        west_center = (rect_map["stair_west_f1"].cx + rect_map["elevator_west_f1"].cx) / 2.0
+        east_center = (rect_map["stair_east_f1"].cx + rect_map["elevator_east_f1"].cx) / 2.0
+        total_width = max(r.x2 for r in preplaced) - min(r.x for r in preplaced)
+
+        assert east_center > west_center
+        assert (east_center - west_center) >= 0.45 * total_width
+
+
 class TestOrtoolsSolver:
     def test_returns_rects_without_overlap(self):
         pytest.importorskip("ortools")
@@ -212,6 +237,22 @@ class TestOrtoolsSolver:
         rects = OrtoolsSolver(SolverConfig(seed=42, solver_time_limit_sec=5)).solve(topo)
         assert len(rects) == len(topo.spaces)
         assert check_overlaps(rects) == []
+
+    def test_identifies_same_type_core_pairs_for_conflict_penalty(self):
+        pytest.importorskip("ortools")
+        from topo2ifc.layout.solver_ortools import OrtoolsSolver
+
+        topo = TopologyGraph()
+        topo.add_space(SpaceSpec("stair_a", name="Stair A", category="core", area_target=9.0))
+        topo.add_space(SpaceSpec("stair_b", name="Stair B", category="core", area_target=9.0))
+        topo.add_space(SpaceSpec("elevator_a", name="Elevator A", category="core", area_target=6.0))
+        topo.add_space(SpaceSpec("office", category="office", area_target=20.0))
+
+        solver = OrtoolsSolver(SolverConfig(seed=0, solver_time_limit_sec=3))
+        pairs = solver._core_conflict_pairs(topo.spaces)
+
+        assert (0, 1) in pairs
+        assert all(topo.spaces[a].space_id.startswith("stair") for a, _ in pairs)
 
 
 class TestRectTouch:

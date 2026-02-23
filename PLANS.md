@@ -152,7 +152,7 @@ AI agents must read this file before starting work and mark each task `[x]` when
 ### 6-2 Implement deterministic stair/elevator placement heuristic
 - [x] Add a pre-placement pass that reserves stair/elevator shafts before room packing and keeps reserved cores aligned across floors.
 - [x] Implement stair adjacency scoring (near corridor, away from dead-end) and elevator centrality scoring (minimize weighted travel distance to floor spaces).
-- [ ] Add conflict resolution for multiple cores (e.g., split-core buildings) with fallback to OR-Tools objective penalties.
+- [x] Add conflict resolution for multiple cores (e.g., split-core buildings) with fallback to OR-Tools objective penalties.
 
 ### 6-3 Extend OR-Tools model for stacked-floor optimization
 - [ ] Add decision variables tying core XY positions across storeys (stacking constraints) while keeping existing non-overlap/adjacency constraints per floor.

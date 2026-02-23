@@ -331,7 +331,7 @@ class HeuristicSolver(LayoutSolverBase):
                 neighbor = spaces.get(nid)
                 if neighbor is None:
                     continue
-                is_dead_end = len(list(topo.neighbors(nid))) <= 1
+                is_dead_end = sum(1 for _ in topo.neighbors(nid)) <= 1
                 is_corridor = neighbor.space_category == SpaceCategory.CORRIDOR
                 is_core = self._is_vertical_core(neighbor)
                 if is_dead_end and not is_corridor and not is_core:

@@ -246,15 +246,33 @@ class TestOrtoolsSolver:
         topo.add_space(SpaceSpec("stair_a", name="Stair A", category="core", area_target=9.0))
         topo.add_space(SpaceSpec("stair_b", name="Stair B", category="core", area_target=9.0))
         topo.add_space(SpaceSpec("elevator_a", name="Elevator A", category="core", area_target=6.0))
+        topo.add_space(SpaceSpec("elevator_b", name="Elevator B", category="core", area_target=6.0))
         topo.add_space(SpaceSpec("office", category="office", area_target=20.0))
 
         solver = OrtoolsSolver(SolverConfig(seed=0, solver_time_limit_sec=3))
         pairs = solver._core_conflict_pairs(topo.spaces)
 
-        assert (0, 1) in pairs
-        assert all(topo.spaces[a].space_id.startswith("stair") for a, _ in pairs)
+        # Map space_ids to their indices so assertions do not depend on insertion order.
+        id_to_index = {space.space_id: i for i, space in enumerate(topo.spaces)}
 
+        # Verify that both stair-stair and elevator-elevator core pairs are identified.
+        assert (id_to_index["stair_a"], id_to_index["stair_b"]) in pairs or (
+            id_to_index["stair_b"],
+            id_to_index["stair_a"],
+        ) in pairs
+        assert (id_to_index["elevator_a"], id_to_index["elevator_b"]) in pairs or (
+            id_to_index["elevator_b"],
+            id_to_index["elevator_a"],
+        ) in pairs
 
+        # All conflict pairs must be between spaces of the same core subtype (e.g. both "stair_*" or both "elevator_*").
+        def _core_type(space_id: str) -> str:
+            return space_id.split("_", 1)[0]
+
+        assert all(
+            _core_type(topo.spaces[a].space_id) == _core_type(topo.spaces[b].space_id)
+            for a, b in pairs
+        )
 class TestRectTouch:
     def test_horizontal_touch(self):
         a = LayoutRect("a", 0, 0, 5, 4)

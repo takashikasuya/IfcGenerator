@@ -103,6 +103,69 @@ class TestHeuristicSolver:
         assert aspect <= 2.2
 
 
+
+
+    def test_stair_scoring_prefers_corridor_adjacent_and_non_dead_end(self):
+        topo = TopologyGraph()
+        topo.add_space(SpaceSpec("corr", name="Corridor", category="corridor", area_target=12.0))
+        topo.add_space(SpaceSpec("stair_good", name="Main Stair", category="core", area_target=9.0))
+        topo.add_space(SpaceSpec("stair_bad", name="Back Stair", category="core", area_target=9.0))
+        topo.add_space(SpaceSpec("room1", name="Room 1", category="office", area_target=16.0))
+        topo.add_space(SpaceSpec("room2", name="Room 2", category="office", area_target=16.0))
+
+        topo.add_adjacency(AdjacencyEdge("stair_good", "corr"))
+        topo.add_adjacency(AdjacencyEdge("stair_good", "room1"))
+        topo.add_adjacency(AdjacencyEdge("corr", "room2"))
+        topo.add_adjacency(AdjacencyEdge("stair_bad", "room2"))
+
+        solver = HeuristicSolver(SolverConfig(seed=1))
+        core_ids = solver._vertical_core_ids(topo, [
+            "stair_bad", "stair_good", "corr", "room1", "room2"
+        ])
+
+        assert core_ids.index("stair_good") < core_ids.index("stair_bad")
+
+    def test_elevator_scoring_prefers_more_central_candidate(self):
+        topo = TopologyGraph()
+        topo.add_space(SpaceSpec("room_a", name="Room A", category="office", area_target=12.0))
+        topo.add_space(SpaceSpec("room_b", name="Room B", category="office", area_target=12.0))
+        topo.add_space(SpaceSpec("room_c", name="Room C", category="office", area_target=12.0))
+        topo.add_space(SpaceSpec("elev_center", name="Main Elevator", category="core", area_target=9.0))
+        topo.add_space(SpaceSpec("elev_edge", name="Service Elevator", category="core", area_target=9.0))
+
+        topo.add_adjacency(AdjacencyEdge("room_a", "room_b"))
+        topo.add_adjacency(AdjacencyEdge("room_b", "room_c"))
+        topo.add_adjacency(AdjacencyEdge("elev_center", "room_b"))
+        topo.add_adjacency(AdjacencyEdge("elev_edge", "room_a"))
+
+        solver = HeuristicSolver(SolverConfig(seed=2))
+        core_ids = solver._vertical_core_ids(
+            topo, ["elev_edge", "elev_center", "room_a", "room_b", "room_c"]
+        )
+
+        assert core_ids.index("elev_center") < core_ids.index("elev_edge")
+    def test_multi_storey_reserves_and_aligns_vertical_core(self):
+        topo = TopologyGraph()
+        topo.add_space(SpaceSpec("f1_stair", name="Main Stair", category="core", area_target=9.0, storey_elevation=0.0))
+        topo.add_space(SpaceSpec("f1_room", name="F1 Room", category="office", area_target=20.0, storey_elevation=0.0))
+        topo.add_space(SpaceSpec("f2_stair", name="Main Stair", category="core", area_target=9.0, storey_elevation=3.5))
+        topo.add_space(SpaceSpec("f2_room", name="F2 Room", category="office", area_target=20.0, storey_elevation=3.5))
+
+        topo.add_adjacency(AdjacencyEdge("f1_stair", "f1_room"))
+        topo.add_adjacency(AdjacencyEdge("f2_stair", "f2_room"))
+
+        solver = HeuristicSolver(SolverConfig(seed=7))
+        rects = solver.solve(topo)
+        by_id = {r.space_id: r for r in rects}
+
+        assert len(rects) == 4
+        assert by_id["f1_stair"].x == pytest.approx(by_id["f2_stair"].x)
+
+        floor1_top = max(by_id["f1_stair"].y2, by_id["f1_room"].y2)
+        floor2_bottom = min(by_id["f2_stair"].y, by_id["f2_room"].y)
+        assert floor2_bottom >= floor1_top
+
+
 class TestOrtoolsSolver:
     def test_returns_rects_without_overlap(self):
         pytest.importorskip("ortools")

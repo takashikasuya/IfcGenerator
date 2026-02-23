@@ -150,8 +150,8 @@ AI agents must read this file before starting work and mark each task `[x]` when
 - [x] Add topology validation rules that enforce stair presence for `storey_count >= 2` and elevator presence for configurable high-rise thresholds.
 
 ### 6-2 Implement deterministic stair/elevator placement heuristic
-- [ ] Add a pre-placement pass that reserves stair/elevator shafts before room packing and keeps reserved cores aligned across floors.
-- [ ] Implement stair adjacency scoring (near corridor, away from dead-end) and elevator centrality scoring (minimize weighted travel distance to floor spaces).
+- [x] Add a pre-placement pass that reserves stair/elevator shafts before room packing and keeps reserved cores aligned across floors.
+- [x] Implement stair adjacency scoring (near corridor, away from dead-end) and elevator centrality scoring (minimize weighted travel distance to floor spaces).
 - [ ] Add conflict resolution for multiple cores (e.g., split-core buildings) with fallback to OR-Tools objective penalties.
 
 ### 6-3 Extend OR-Tools model for stacked-floor optimization

@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 import math
 import random
+import re
 from typing import Optional
 
 from topo2ifc.config import SolverConfig
@@ -39,11 +40,14 @@ class HeuristicSolver(LayoutSolverBase):
             return []
 
         order = self._bfs_order(topo)
+        order, preplaced = self._preplace_vertical_cores(topo, order)
+        y_offset = max((r.y2 for r in preplaced), default=0.0)
         sparse_topology = not topo.adjacent_pairs() and not topo.connected_pairs()
         if sparse_topology:
-            rects = self._compact_grid_placement(topo, order)
+            rects = self._compact_grid_placement(topo, order, y_offset=y_offset)
         else:
-            rects = self._initial_placement(topo, order)
+            rects = self._initial_placement(topo, order, y_offset=y_offset)
+        rects = preplaced + rects
         rects = self._hill_climb(topo, rects)
         return rects
 
@@ -64,11 +68,65 @@ class HeuristicSolver(LayoutSolverBase):
         return topo.bfs_order(root)
 
     # ------------------------------------------------------------------ #
+    # Step 1.5 – Reserve vertical circulation cores
+    # ------------------------------------------------------------------ #
+
+    def _preplace_vertical_cores(
+        self,
+        topo: TopologyGraph,
+        order: list[str],
+    ) -> tuple[list[str], list[LayoutRect]]:
+        """Reserve stair/elevator core rectangles before room packing.
+
+        Core candidates are detected from category/name/id hints and placed
+        on the first row so all other spaces are packed above that reserved
+        band. Core IDs with per-floor suffixes are normalized to keep a stable
+        left-to-right ordering across storeys.
+        """
+        core_ids = [sid for sid in order if self._is_vertical_core(topo.get_space(sid))]
+        if not core_ids:
+            return order, []
+
+        grid = self.config.grid_unit
+        core_ids.sort(key=lambda sid: self._core_group_key(topo.get_space(sid)))
+
+        preplaced: list[LayoutRect] = []
+        x_cursor = 0.0
+        for sid in core_ids:
+            area = topo.get_space(sid).effective_area_target
+            w, h = self._initial_dims(area)
+            w = max(grid, round(w / grid) * grid)
+            h = max(grid, round(h / grid) * grid)
+            preplaced.append(LayoutRect(space_id=sid, x=round(x_cursor, 4), y=0.0, width=w, height=h))
+            x_cursor += w
+
+        remaining = [sid for sid in order if sid not in set(core_ids)]
+        return remaining, preplaced
+
+    @staticmethod
+    def _is_vertical_core(spec) -> bool:
+        category = (spec.category or "").strip().lower()
+        text = f"{spec.space_id} {spec.name}".lower()
+        return (
+            category == SpaceCategory.CORE.value
+            or "stair" in text
+            or "elevator" in text
+            or "lift" in text
+        )
+
+    @staticmethod
+    def _core_group_key(spec) -> tuple[str, str]:
+        text = f"{spec.space_id} {spec.name}".lower()
+        base = re.sub(r"(_?f\d+|_?floor\d+)$", "", spec.space_id.lower())
+        core_type = "stair" if "stair" in text else ("elevator" if ("elevator" in text or "lift" in text) else "core")
+        return core_type, base
+
+    # ------------------------------------------------------------------ #
     # Step 2 – Strip packing
     # ------------------------------------------------------------------ #
 
     def _initial_placement(
-        self, topo: TopologyGraph, order: list[str]
+        self, topo: TopologyGraph, order: list[str], y_offset: float = 0.0
     ) -> list[LayoutRect]:
         rects: dict[str, LayoutRect] = {}
         dims: dict[str, tuple[float, float]] = {}
@@ -92,7 +150,7 @@ class HeuristicSolver(LayoutSolverBase):
         strip_width = min(strip_width, _DEFAULT_STRIP_WIDTH)
 
         x_cursor = 0.0
-        y_cursor = 0.0
+        y_cursor = y_offset
         row_height = 0.0
 
         for sid in order:
@@ -117,7 +175,7 @@ class HeuristicSolver(LayoutSolverBase):
         return list(rects.values())
 
     def _compact_grid_placement(
-        self, topo: TopologyGraph, order: list[str]
+        self, topo: TopologyGraph, order: list[str], y_offset: float = 0.0
     ) -> list[LayoutRect]:
         """Place sparse/disconnected spaces in a compact near-square grid."""
         if not order:
@@ -139,7 +197,7 @@ class HeuristicSolver(LayoutSolverBase):
         max_row_w = max(row_widths) if row_widths else 0.0
 
         rects: list[LayoutRect] = []
-        y_cursor = 0.0
+        y_cursor = y_offset
         for row, row_w, row_h in zip(rows, row_widths, row_heights):
             x_cursor = (max_row_w - row_w) / 2.0
             for sid in row:

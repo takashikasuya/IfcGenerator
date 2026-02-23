@@ -102,6 +102,23 @@ class TestHeuristicSolver:
         aspect = max(total_w, total_h) / max(1e-9, min(total_w, total_h))
         assert aspect <= 2.2
 
+    def test_prepaces_vertical_cores_before_other_spaces(self):
+        topo = TopologyGraph()
+        topo.add_space(SpaceSpec("stair_f1", name="Main Stair", category="core", area_target=9.0))
+        topo.add_space(SpaceSpec("elevator_f1", name="Main Elevator", category="core", area_target=6.0))
+        topo.add_space(SpaceSpec("room_a", category="office", area_target=20.0))
+        topo.add_space(SpaceSpec("room_b", category="meeting", area_target=16.0))
+
+        solver = HeuristicSolver(SolverConfig(seed=42, grid_unit=0.5))
+        rects = solver.solve(topo)
+        rect_map = {r.space_id: r for r in rects}
+
+        core_band_height = max(rect_map["stair_f1"].height, rect_map["elevator_f1"].height)
+        assert rect_map["stair_f1"].y == pytest.approx(0.0)
+        assert rect_map["elevator_f1"].y == pytest.approx(0.0)
+        assert rect_map["room_a"].y >= core_band_height - 1e-9
+        assert rect_map["room_b"].y >= core_band_height - 1e-9
+
 
 class TestOrtoolsSolver:
     def test_returns_rects_without_overlap(self):

@@ -314,3 +314,28 @@ class TestSBCOSampleFile:
 
         assert len(spaces) == 2
         assert {s.name for s in spaces} == {"Office Area", "Meeting Room"}
+
+
+class TestVerticalCirculationLoader:
+    def test_extracts_circulation_and_vertical_core_specs(self, tmp_path):
+        ttl_path = tmp_path / "vertical_circulation.ttl"
+        ttl_path.write_text(
+            "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n"
+            "@prefix sbco: <https://www.sbco.or.jp/ont/> .\n"
+            "@prefix ex: <urn:test:> .\n"
+            "ex:level1 a sbco:Level ; sbco:levelNumber 1 .\n"
+            "ex:space1 a sbco:Space ; sbco:name \"Level 1 Core\" ; sbco:isPartOf ex:level1 .\n"
+            "ex:stair1 a sbco:Stair ; sbco:name \"Main Stair\" ; sbco:locatedIn ex:space1 .\n"
+            "ex:elevator1 a sbco:Elevator ; sbco:name \"Main Elevator\" ; sbco:locatedIn ex:space1 .\n"
+        )
+
+        loader = RDFLoader(ttl_path)
+        g = loader.load()
+
+        circulation = loader.extract_circulation(g)
+        cores = loader.extract_vertical_cores(g)
+
+        assert {c.circulation_type for c in circulation} == {"stair", "elevator"}
+        assert len(cores) == 2
+        assert {c.core_type for c in cores} == {"stair", "elevator"}
+        assert all(core.space_id == "urn:test:space1" for core in cores)

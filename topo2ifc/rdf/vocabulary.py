@@ -67,6 +67,12 @@ POINT_CLASSES: tuple[URIRef, ...] = (
     SBCO.PointExt,
 )
 
+# Vertical circulation concepts
+CIRCULATION_CLASSES: tuple[URIRef, ...] = (
+    SBCO.Stair,
+    SBCO.Elevator,
+)
+
 # --------------------------------------------------------------------------- #
 # Object Properties
 # --------------------------------------------------------------------------- #

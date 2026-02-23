@@ -16,11 +16,13 @@ from rdflib.namespace import RDF as RDF_NS
 from topo2ifc.rdf import vocabulary as V
 from topo2ifc.topology.model import (
     AdjacencyEdge,
+    CirculationSpec,
     ConnectionEdge,
     EquipmentSpec,
     PointSpec,
     SpaceSpec,
     StoreySpec,
+    VerticalCoreSpec,
 )
 
 logger = logging.getLogger(__name__)
@@ -334,6 +336,64 @@ class RDFLoader:
                     edges.append(AdjacencyEdge(space_a=a, space_b=b))
 
         return edges
+
+    def extract_circulation(self, g: Optional[Graph] = None) -> list[CirculationSpec]:
+        """Return stairs/elevators extracted as :class:`CirculationSpec`."""
+        g = g or self._graph
+        if g is None:
+            raise RuntimeError("Call load() before extract_circulation()")
+
+        circulation: list[CirculationSpec] = []
+        seen: set[str] = set()
+
+        for circulation_class in V.CIRCULATION_CLASSES:
+            class_name = str(circulation_class).split("#")[-1].split("/")[-1].lower()
+            for subject in g.subjects(RDF_NS.type, circulation_class):
+                cid = str(subject)
+                if cid in seen:
+                    continue
+                seen.add(cid)
+
+                name = _first_literal(g, subject, V.PROP_NAME)
+                space_id: Optional[str] = None
+                space_ids: list[str] = []
+                for pred in V.LOCATED_IN:
+                    for obj in g.objects(subject, pred):
+                        space_ids.append(str(obj))
+                if space_ids:
+                    space_id = space_ids[0]
+                    if len(space_ids) > 1:
+                        logger.warning(
+                            "Circulation element %s has multiple LOCATED_IN spaces (%s); using first: %s",
+                            cid,
+                            ", ".join(space_ids),
+                            space_id,
+                        )
+
+                circulation.append(
+                    CirculationSpec(
+                        circulation_id=cid,
+                        circulation_type=class_name,
+                        name=name or cid.split("#")[-1].split("/")[-1],
+                        space_id=space_id,
+                    )
+                )
+
+        logger.debug("Extracted %d circulation elements", len(circulation))
+        return circulation
+
+    def extract_vertical_cores(self, g: Optional[Graph] = None) -> list[VerticalCoreSpec]:
+        """Return vertical core requirements derived from circulation entities."""
+        circulation = self.extract_circulation(g)
+        return [
+            VerticalCoreSpec(
+                core_id=spec.circulation_id,
+                core_type=spec.circulation_type,
+                name=spec.name,
+                space_id=spec.space_id,
+            )
+            for spec in circulation
+        ]
 
     def extract_connections(
         self,

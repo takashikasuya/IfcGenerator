@@ -41,7 +41,7 @@ class HeuristicSolver(LayoutSolverBase):
 
         order = self._bfs_order(topo)
         order, preplaced = self._preplace_vertical_cores(topo, order)
-        y_offset = max((r.y2 for r in preplaced), default=0.0)
+        y_offset = max((r.height for r in preplaced), default=0.0)
         sparse_topology = not topo.adjacent_pairs() and not topo.connected_pairs()
         if sparse_topology:
             rects = self._compact_grid_placement(topo, order, y_offset=y_offset)

@@ -539,12 +539,28 @@ class IfcExporter:
                 )
                 continue
 
+            # Use the true intersection dimensions; treat very small intersections as invalid
+            # instead of clamping them up to a minimum size, to avoid fabricating shafts
+            # that extend outside some storeys' core footprints.
+            width = x2_min - xs_max
+            height = y2_min - ys_max
+            min_size = 0.3
+            if width < min_size or height < min_size:
+                logger.warning(
+                    "Skipping shaft opening for core stack '%s' due to too small "
+                    "intersection (%.3f x %.3f m).",
+                    base,
+                    width,
+                    height,
+                )
+                continue
+
             open_rect = LayoutRect(
                 space_id="__shaft_opening__",
                 x=xs_max,
                 y=ys_max,
-                width=max(0.3, x2_min - xs_max),
-                height=max(0.3, y2_min - ys_max),
+                width=width,
+                height=height,
             )
             for _, spec in items:
                 if spec.storey_elevation is None:

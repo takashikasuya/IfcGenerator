@@ -156,35 +156,72 @@ class OrtoolsSolver(LayoutSolverBase):
             elevator_ids = [i for i, sp in enumerate(spaces) if self._core_type(sp) == "elevator"]
             non_core_ids = [i for i, sp in enumerate(spaces) if self._core_type(sp) not in {"stair", "elevator"}]
 
+            # If spaces carry storey metadata, scope circulation distances to spaces on
+            # the same storey. Otherwise, fall back to the original global behavior.
+            has_storey_attr = any(hasattr(sp, "storey_id") for sp in spaces)
+
             for i in non_core_ids:
                 if stair_ids:
-                    stair_dist = []
-                    for j in stair_ids:
-                        dx = model.new_int_var(0, 2 * (max_coord_g + max_dim_g), f"stair_dx_{i}_{j}")
-                        dy = model.new_int_var(0, 2 * (max_coord_g + max_dim_g), f"stair_dy_{i}_{j}")
-                        manhattan = model.new_int_var(0, 4 * (max_coord_g + max_dim_g), f"stair_dist_{i}_{j}")
-                        model.add_abs_equality(dx, center_x2[i] - center_x2[j])
-                        model.add_abs_equality(dy, center_y2[i] - center_y2[j])
-                        model.add(manhattan == dx + dy)
-                        stair_dist.append(manhattan)
-                    nearest_stair = model.new_int_var(0, 4 * (max_coord_g + max_dim_g), f"nearest_stair_{i}")
-                    model.add_min_equality(nearest_stair, stair_dist)
-                    circulation_penalties.append(nearest_stair)
+                    if has_storey_attr:
+                        storey_i = getattr(spaces[i], "storey_id", None)
+                        relevant_stair_ids = [
+                            j for j in stair_ids if getattr(spaces[j], "storey_id", None) == storey_i
+                        ]
+                    else:
+                        relevant_stair_ids = stair_ids
+
+                    if relevant_stair_ids:
+                        stair_dist = []
+                        for j in relevant_stair_ids:
+                            dx = model.new_int_var(
+                                0, 2 * (max_coord_g + max_dim_g), f"stair_dx_{i}_{j}"
+                            )
+                            dy = model.new_int_var(
+                                0, 2 * (max_coord_g + max_dim_g), f"stair_dy_{i}_{j}"
+                            )
+                            manhattan = model.new_int_var(
+                                0, 4 * (max_coord_g + max_dim_g), f"stair_dist_{i}_{j}"
+                            )
+                            model.add_abs_equality(dx, center_x2[i] - center_x2[j])
+                            model.add_abs_equality(dy, center_y2[i] - center_y2[j])
+                            model.add(manhattan == dx + dy)
+                            stair_dist.append(manhattan)
+                        nearest_stair = model.new_int_var(
+                            0, 4 * (max_coord_g + max_dim_g), f"nearest_stair_{i}"
+                        )
+                        model.add_min_equality(nearest_stair, stair_dist)
+                        circulation_penalties.append(nearest_stair)
 
                 if elevator_ids:
-                    elev_dist = []
-                    for j in elevator_ids:
-                        dx = model.new_int_var(0, 2 * (max_coord_g + max_dim_g), f"elev_dx_{i}_{j}")
-                        dy = model.new_int_var(0, 2 * (max_coord_g + max_dim_g), f"elev_dy_{i}_{j}")
-                        manhattan = model.new_int_var(0, 4 * (max_coord_g + max_dim_g), f"elev_dist_{i}_{j}")
-                        model.add_abs_equality(dx, center_x2[i] - center_x2[j])
-                        model.add_abs_equality(dy, center_y2[i] - center_y2[j])
-                        model.add(manhattan == dx + dy)
-                        elev_dist.append(manhattan)
-                    nearest_elev = model.new_int_var(0, 4 * (max_coord_g + max_dim_g), f"nearest_elev_{i}")
-                    model.add_min_equality(nearest_elev, elev_dist)
-                    circulation_penalties.append(nearest_elev)
+                    if has_storey_attr:
+                        storey_i = getattr(spaces[i], "storey_id", None)
+                        relevant_elev_ids = [
+                            j for j in elevator_ids if getattr(spaces[j], "storey_id", None) == storey_i
+                        ]
+                    else:
+                        relevant_elev_ids = elevator_ids
 
+                    if relevant_elev_ids:
+                        elev_dist = []
+                        for j in relevant_elev_ids:
+                            dx = model.new_int_var(
+                                0, 2 * (max_coord_g + max_dim_g), f"elev_dx_{i}_{j}"
+                            )
+                            dy = model.new_int_var(
+                                0, 2 * (max_coord_g + max_dim_g), f"elev_dy_{i}_{j}"
+                            )
+                            manhattan = model.new_int_var(
+                                0, 4 * (max_coord_g + max_dim_g), f"elev_dist_{i}_{j}"
+                            )
+                            model.add_abs_equality(dx, center_x2[i] - center_x2[j])
+                            model.add_abs_equality(dy, center_y2[i] - center_y2[j])
+                            model.add(manhattan == dx + dy)
+                            elev_dist.append(manhattan)
+                        nearest_elev = model.new_int_var(
+                            0, 4 * (max_coord_g + max_dim_g), f"nearest_elev_{i}"
+                        )
+                        model.add_min_equality(nearest_elev, elev_dist)
+                        circulation_penalties.append(nearest_elev)
         model.minimize(
             100 * sum(deviations)
             + 10 * (max_x + max_y)
